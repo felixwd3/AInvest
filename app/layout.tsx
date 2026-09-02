@@ -1,9 +1,14 @@
 import './globals.css'
+import type { Metadata } from 'next'
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'AInvest',
-  description: 'Din personlige investeringsassistent',
+  description: 'Din personlige investeringsassistent og beslutningsstøtte',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/icon.png',
+    apple: '/icon.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -18,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="da">
-      <body className="bg-gray-950 text-white antialiased">{children}</body>
+      <body className="bg-[#070b14] text-white antialiased">{children}</body>
     </html>
   )
 }
