@@ -25,13 +25,17 @@ export default function Home() {
   const [budget, setBudget] = useState<number>(3000)
   const [analyzing, setAnalyzing] = useState(false)
 
-  // States til ny aktie
+  // Manuel tilføjelse
   const [newSymbol, setNewSymbol] = useState('')
   const [newName, setNewName] = useState('')
   const [newTimeframe, setNewTimeframe] = useState('LANGSIKTET')
   const [adding, setAdding] = useState(false)
 
-  // Filter fane på oversigten
+  // AI Idéer state
+  const [ideas, setIdeas] = useState<any[]>([])
+  const [loadingIdeas, setLoadingIdeas] = useState(false)
+
+  // Filter fane
   const [activeTab, setActiveTab] = useState<'ALLE' | 'LANGSIKTET' | 'KORTSIGTET'>('ALLE')
 
   const fetchStocks = async () => {
@@ -103,6 +107,56 @@ export default function Home() {
     }
   }
 
+  const fetchAiIdeas = async () => {
+    try {
+      setLoadingIdeas(true)
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'ideas' }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setIdeas(data.ideas || [])
+      } else {
+        alert('Kunne ikke hente idéer.')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Der opstod en fejl.')
+    } finally {
+      setLoadingIdeas(false)
+    }
+  }
+
+  const addIdeaToPortfolio = async (idea: any) => {
+    try {
+      setAdding(true)
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: 'add', 
+          symbol: idea.symbol, 
+          name: idea.name, 
+          timeframe: idea.timeframe || 'LANGSIKTET'
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        // Fjern den fra idé-listen og opdater porteføljen
+        setIdeas(ideas.filter(item => item.symbol !== idea.symbol))
+        await fetchStocks()
+      } else {
+        alert('Fejl ved tilføjelse af idé.')
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setAdding(false)
+    }
+  }
+
   const filteredStocks = stocks.filter(stock => {
     if (activeTab === 'ALLE') return true
     const tf = stock.timeframe || 'LANGSIKTET'
@@ -143,21 +197,68 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Tilføj ny aktie med Horisont-vælger */}
+        {/* AI Idéer / Inspiration Sektion */}
+        <section className="bg-gradient-to-br from-[#0b1326] to-[#06101e] border border-cyan-900/50 rounded-2xl p-6 mb-6 shadow-xl">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-cyan-300">💡 AI Inspiration & Idéer</h2>
+              <p className="text-sm text-gray-400">Lad Gemini finde spændende nye aktie-anbefalinger til dig.</p>
+            </div>
+            <button
+              onClick={fetchAiIdeas}
+              disabled={loadingIdeas}
+              className="bg-cyan-500 hover:bg-cyan-400 text-gray-950 font-bold px-4 py-2 rounded-xl text-xs transition shadow-md disabled:opacity-50 w-full sm:w-auto"
+            >
+              {loadingIdeas ? 'Foreslår aktier...' : '🤖 Få AI Aktie-idéer'}
+            </button>
+          </div>
+
+          {ideas.length > 0 && (
+            <div className="grid gap-3 mt-4 pt-4 border-t border-gray-800/80">
+              {ideas.map((idea, index) => (
+                <div key={index} className="bg-[#070b14]/80 border border-gray-800 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-gray-100">{idea.name}</span>
+                      <span className="text-xs bg-cyan-950 text-cyan-300 border border-cyan-900/50 px-2 py-0.5 rounded font-mono">{idea.symbol}</span>
+                      <span className="text-[10px] bg-gray-900 text-gray-400 px-2 py-0.5 rounded font-mono uppercase">{idea.timeframe}</span>
+                    </div>
+                    <p className="text-xs text-gray-400 max-w-md">{idea.ai_reasoning}</p>
+                  </div>
+                  <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                    <div className="text-right">
+                      <div className="text-[10px] text-gray-400 uppercase">Score</div>
+                      <div className="text-sm font-bold text-emerald-400 font-mono">{idea.score}/100</div>
+                    </div>
+                    <button
+                      onClick={() => addIdeaToPortfolio(idea)}
+                      disabled={adding}
+                      className="bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-bold px-3 py-1.5 rounded-lg text-xs transition shadow"
+                    >
+                      + Tilføj
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Manuel Tilføj Formular */}
         <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-6 shadow-xl">
-          <h2 className="text-lg font-semibold text-gray-200 mb-3">Tilføj ny aktie med AI-analyse</h2>
+          <h2 className="text-lg font-semibold text-gray-200 mb-3">Tilføj specifik aktie</h2>
           <form onSubmit={handleAddStock} className="flex flex-col gap-3">
             <div className="flex flex-col sm:flex-row gap-3">
               <input 
                 type="text" 
-                placeholder="Virksomhedsnavn (f.eks. Novo Nordisk)" 
+                placeholder="Virksomhedsnavn (f.eks. Apple)" 
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white flex-1 text-sm focus:outline-none focus:border-emerald-500"
               />
               <input 
                 type="text" 
-                placeholder="Ticker (f.eks. NOVO-B)" 
+                placeholder="Ticker (f.eks. AAPL)" 
                 value={newSymbol}
                 onChange={(e) => setNewSymbol(e.target.value)}
                 className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white sm:w-40 text-sm font-mono uppercase focus:outline-none focus:border-emerald-500"
