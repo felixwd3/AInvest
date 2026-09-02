@@ -12,6 +12,8 @@ interface Stock {
   score: number
   recommendation: string
   ai_reasoning: string | null
+  stop_loss?: number | null
+  take_profit?: number | null
 }
 
 export default function Home() {
@@ -114,7 +116,6 @@ export default function Home() {
     setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
-  // Funktion der kopierer ticker til udklipsholder
   const handleCopyTicker = (symbol: string, name: string) => {
     navigator.clipboard.writeText(symbol).then(() => {
       alert(`📋 Kopiér lykkedes!\n\nTicker "${symbol}" (${name}) er nu kopieret til dit udklipsholder.\n\nÅbn blot din Saxo-app og indsæt den i søgefeltet.`);
@@ -320,6 +321,18 @@ export default function Home() {
                             </button>
                           )}
                         </div>
+
+                        {/* RISIKOSTYRING / EXIT NIVEAUER */}
+                        {(stock.stop_loss || stock.take_profit) && (
+                          <div className="flex items-center gap-4 pt-2 text-xs font-mono">
+                            <span className="text-rose-400 bg-rose-950/40 border border-rose-900/40 px-2.5 py-1 rounded-lg">
+                              🛑 Stop-Loss: <strong>{stock.stop_loss}</strong>
+                            </span>
+                            <span className="text-emerald-400 bg-emerald-950/40 border border-emerald-900/40 px-2.5 py-1 rounded-lg">
+                              🎯 Take-Profit: <strong>{stock.take_profit}</strong>
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0 border-gray-800/80 shrink-0">

@@ -17,48 +17,22 @@ export async function POST(request: Request) {
       // Ingen JSON body
     }
 
-    // 1. HVIS BRUGEREN VIL HAVE AI AKTIE-IDÉER
-    if (body && body.action === 'ideas') {
-      const prompt = `Giv 3 aktuelle og spændende aktie-idéer til en investor (bland gerne kortsigtet momentum og langsigtet kvalitet).
-      Svar KUN i gyldigt JSON-format som en liste (array) med præcis 3 objekter:
-      [
-        {
-          "symbol": "Ticker (f.eks. AAPL eller NOVO-B)",
-          "name": "Virksomhedens fulde navn",
-          "timeframe": "LANGSIKTET" eller "KORTSIGTET",
-          "score": et tal mellem 75 og 98,
-          "recommendation": "KØB",
-          "ai_reasoning": "Kort skarp begrundelse på dansk (maks 2 sætninger)",
-          "current_price": et realistisk nuværende aktiepris-tal (f.eks. 850.5)
-        }
-      ]`
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
-        contents: prompt,
-      })
-
-      const textResponse = response.text || ''
-      const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim()
-      const ideas = JSON.parse(cleanJson)
-
-      return NextResponse.json({ success: true, ideas })
-    }
-
-    // 2. HVIS BRUGEREN VIL TILFØJE EN NY AKTIE MANUELT
+    // HVIS BRUGEREN VIL TILFØJE EN NY AKTIE
     if (body && body.action === 'add' && body.symbol) {
       const symbol = body.symbol.toUpperCase().trim()
       const name = body.name ? body.name.trim() : symbol
       const timeframe = body.timeframe || 'LANGSIKTET'
 
-      const prompt = `Analyser aktien ${name} (${symbol}) med fokus på en **${timeframe}** investeringshorisont. 
-      Giv en skarp finansiel vurdering på dansk. 
+      const prompt = `Analyser aktien ${name} (${symbol}) med fokus på en **${timeframe}** horisont. 
+      Giv en skarp finansiel vurdering på dansk. Udover score og anbefaling skal du beregne et forsvarligt **Stop-Loss** (sikkerhedsnet mod tab) og et realistisk **Take-Profit** (hjemtagelse af gevinst) baseret på nuværende pris.
       Svar KUN i gyldigt JSON-format med følgende felter:
       {
         "score": et tal mellem 0 og 100,
         "recommendation": "KØB", "HOLD" eller "SÆLG",
         "ai_reasoning": "Kort skarp begrundelse på dansk tilpasset horisonten (maks 2 sætninger)",
-        "current_price": et realistisk nuværende aktiepris-tal som tal (f.eks. 850.5)
+        "current_price": et realistisk nuværende aktiepris-tal som tal (f.eks. 850.5),
+        "stop_loss": et tal for anbefalet stop-loss pris,
+        "take_profit": et tal for anbefalet take-profit pris
       }`
 
       const response = await ai.models.generateContent({
@@ -78,14 +52,16 @@ export async function POST(request: Request) {
         recommendation: analysis.recommendation,
         ai_reasoning: analysis.ai_reasoning,
         current_price: analysis.current_price,
+        stop_loss: analysis.stop_loss,
+        take_profit: analysis.take_profit,
       })
 
       if (insertError) throw insertError
 
-      return NextResponse.json({ success: true, message: `Aktie ${symbol} tilføjet med ${timeframe} horisont!` })
+      return NextResponse.json({ success: true, message: `Aktie ${symbol} tilføjet med risikostyring!` })
     }
 
-    // 3. OPDATER ALLE EKSISTERENDE AKTIER
+    // OPDATER ALLE EKSISTERENDE AKTIER
     const { data: stocks, error: fetchError } = await supabase.from('stocks').select('*')
     if (fetchError) throw fetchError
 
@@ -95,14 +71,16 @@ export async function POST(request: Request) {
 
     for (const stock of stocks) {
       const tf = stock.timeframe || 'LANGSIKTET'
-      const prompt = `Analyser aktien ${stock.name} (${stock.symbol}) med fokus på en **${tf}** investeringshorisont. 
-      Giv en skarp finansiel vurdering på dansk. 
+      const prompt = `Analyser aktien ${stock.name} (${stock.symbol}) med fokus på en **${tf}** horisont. 
+      Giv en skarp finansiel vurdering på dansk inklusiv Stop-Loss og Take-Profit niveauer.
       Svar KUN i gyldigt JSON-format med følgende felter:
       {
         "score": et tal mellem 0 og 100,
         "recommendation": "KØB", "HOLD" eller "SÆLG",
         "ai_reasoning": "Kort skarp begrundelse på dansk tilpasset horisonten (maks 2 sætninger)",
-        "current_price": et realistisk nuværende aktiepris-tal som tal (f.eks. 850.5)
+        "current_price": et realistisk nuværende aktiepris-tal som tal (f.eks. 850.5),
+        "stop_loss": et tal for anbefalet stop-loss pris,
+        "take_profit": et tal for anbefalet take-profit pris
       }`
 
       try {
@@ -122,6 +100,8 @@ export async function POST(request: Request) {
             recommendation: analysis.recommendation,
             ai_reasoning: analysis.ai_reasoning,
             current_price: analysis.current_price,
+            stop_loss: analysis.stop_loss,
+            take_profit: analysis.take_profit,
           })
           .eq('id', stock.id)
       } catch (err) {
@@ -129,7 +109,7 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, message: 'Alle aktier er opdateret af Gemini AI!' })
+    return NextResponse.json({ success: true, message: 'Alle aktier inkl. risikostyring er opdateret!' })
   } catch (error: any) {
     console.error('API Fejl:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
