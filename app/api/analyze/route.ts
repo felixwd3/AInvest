@@ -1,4 +1,4 @@
-import { NextResponse } from 'server/next' // standard Next response
+import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { GoogleGenAI } from '@google/genai'
 
@@ -28,7 +28,7 @@ export async function POST() {
         "score": et tal mellem 0 og 100,
         "recommendation": "KØB", "HOLD" eller "SÆLG",
         "ai_reasoning": "Kort skarp begrundelse på dansk (maks 2 sætninger)",
-        "current_price": et realistisk nuværende aktiepris-tal (f.eks. i DKK eller USD som tal, f.eks. 850.5)
+        "current_price": et realistisk nuværende aktiepris-tal som tal (f.eks. 850.5)
       }`
 
       try {
@@ -38,7 +38,6 @@ export async function POST() {
         })
 
         const textResponse = response.text || ''
-        // Rens eventuelle markdown code-blocks væk fra JSON-svaret
         const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim()
         const analysis = JSON.parse(cleanJson)
 
