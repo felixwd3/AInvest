@@ -14,10 +14,6 @@ interface Stock {
   ai_reasoning: string | null
 }
 
-const getSaxoLink = (symbol: string) => {
-  return `https://www.home.saxo/en-dk/search?q=${encodeURIComponent(symbol)}`;
-};
-
 export default function Home() {
   const [stocks, setStocks] = useState<Stock[]>([])
   const [loading, setLoading] = useState(true)
@@ -116,6 +112,18 @@ export default function Home() {
 
   const toggleExpand = (id: string) => {
     setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  // Funktion der kopierer ticker til udklipsholder og åbner Saxo
+  const handleOpenSaxo = (symbol: string) => {
+    navigator.clipboard.writeText(symbol).then(() => {
+      alert(`📋 "${symbol}" er kopieret til udklipsholder!\n\nÅbner SaxoInvestor - indsæt blot symbolet i søgefeltet.`);
+    }).catch(() => {
+      // Fallback hvis udklipsholder ikke tillades
+    });
+
+    // Åbn SaxoInvestor forsiden / login
+    window.open('https://www.home.saxo/en-dk/accounts/saxoinvestor', '_blank');
   }
 
   const filteredStocks = stocks.filter(stock => {
@@ -349,14 +357,12 @@ export default function Home() {
                         )}
                       </div>
 
-                      <a 
-                        href={getSaxoLink(stock.symbol)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs bg-gray-900 hover:bg-gray-800 text-gray-200 px-3.5 py-2 rounded-xl font-medium transition border border-gray-700/80 shadow-sm"
+                      <button 
+                        onClick={() => handleOpenSaxo(stock.symbol)}
+                        className="inline-flex items-center gap-1.5 text-xs bg-gray-900 hover:bg-gray-800 text-gray-200 px-3.5 py-2 rounded-xl font-medium transition border border-gray-700/80 shadow-sm cursor-pointer"
                       >
-                        Søg i SaxoInvestor ↗
-                      </a>
+                        Kopier Ticker & Åbn Saxo ↗
+                      </button>
                     </div>
                   </div>
                 )
