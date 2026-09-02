@@ -22,30 +22,50 @@ export default function Home() {
   const [stocks, setStocks] = useState<Stock[]>([])
   const [loading, setLoading] = useState(true)
   const [budget, setBudget] = useState<number>(3000)
+  const [analyzing, setAnalyzing] = useState(false)
+
+  const fetchStocks = async () => {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('stocks')
+      .select('*')
+      .order('score', { ascending: false })
+
+    if (error) {
+      console.error('Fejl ved hentning af aktier:', error)
+    } else {
+      setStocks(data || [])
+    }
+    setLoading(false)
+  }
 
   useEffect(() => {
-    async function fetchStocks() {
-      const { data, error } = await supabase
-        .from('stocks')
-        .select('*')
-        .order('score', { ascending: false })
-
-      if (error) {
-        console.error('Fejl ved hentning af aktier:', error)
-      } else {
-        setStocks(data || [])
-      }
-      setLoading(false)
-    }
-
     fetchStocks()
   }, [])
+
+  const runAiAnalysis = async () => {
+    try {
+      setAnalyzing(true)
+      const res = await fetch('/api/analyze', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        await fetchStocks()
+      } else {
+        alert('Fejl under analyse: ' + (data.error || 'Ukendt fejl'))
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Der opstod en fejl under kommunikation med serveren.')
+    } finally {
+      setAnalyzing(false)
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#070b14] text-white p-4 md:p-12">
       <div className="max-w-4xl mx-auto">
         
-        {/* Header med større logo uden boks */}
+        {/* Header med Logo og AI Knap */}
         <header className="flex flex-col sm:flex-row justify-between items-center mb-8 border-b border-gray-800/80 pb-6 gap-4">
           <div className="flex items-center gap-4 text-center sm:text-left">
             <img 
@@ -61,9 +81,18 @@ export default function Home() {
             </div>
           </div>
 
-          <span className="bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 text-xs px-3 py-1.5 rounded-full font-medium shadow-inner">
-            ● Live Database
-          </span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={runAiAnalysis}
+              disabled={analyzing}
+              className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-gray-950 font-bold px-4 py-2.5 rounded-xl text-xs tracking-wide transition shadow-lg disabled:opacity-50"
+            >
+              {analyzing ? 'Gemini analyserer...' : '✨ Kør AI Analyse'}
+            </button>
+            <span className="bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 text-xs px-3 py-2 rounded-full font-medium shadow-inner hidden sm:inline">
+              ● Live DB
+            </span>
+          </div>
         </header>
 
         {/* Positions-beregner */}
@@ -90,7 +119,7 @@ export default function Home() {
           <h2 className="text-xl font-semibold mb-4 text-gray-200 tracking-wide">Overvågede Aktier & Signaler</h2>
           
           {loading ? (
-            <div className="text-center py-12 text-gray-500 font-mono">Henter data fra Supabase...</div>
+            <div className="text-center py-12 text-gray-500 font-mono">Henter data...</div>
           ) : stocks.length === 0 ? (
             <div className="bg-[#0b1326] border border-gray-800 rounded-2xl p-8 text-center text-gray-400">
               <p>Ingen aktier fundet i databasen endnu.</p>
@@ -113,7 +142,7 @@ export default function Home() {
                           <h3 className="text-lg font-bold text-gray-100">{stock.name}</h3>
                           <span className="text-xs bg-gray-900 text-cyan-300 border border-cyan-900/40 px-2.5 py-0.5 rounded-md font-mono">{stock.symbol}</span>
                         </div>
-                        <p className="text-sm text-gray-400 max-w-xl">{stock.ai_reasoning || "Ingen analyse tilgængelig endnu."}</p>
+                        <p className="text-sm text-gray-400 max-w-xl">{stock.ai_reasoning || "Tryk på 'Kør AI Analyse' for at hente vurdering."}</p>
                       </div>
 
                       <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0 border-gray-800/80">
@@ -129,7 +158,7 @@ export default function Home() {
                             stock.recommendation === 'SÆLG' ? 'bg-rose-950 text-rose-300 border border-rose-700/60 shadow-sm' :
                             'bg-amber-950 text-amber-300 border border-amber-700/60 shadow-sm'
                           }`}>
-                            {stock.recommendation}
+                            {stock.recommendation || 'VENT'}
                           </span>
                         </div>
                       </div>
@@ -142,7 +171,9 @@ export default function Home() {
                             Anbefalet køb: <strong className="text-white font-bold">{calculatedShares} stk.</strong> (ca. {totalCost.toLocaleString('da-DK')} DKK)
                           </span>
                         ) : (
-                          <span className="text-xs text-gray-500 font-mono">Ingen aktiv købsanbefaling på nuværende tidspunkt</span>
+                          <span className="text-xs text-gray-500 font-mono">
+                            {price > 0 ? `Aktuel pris: ${price} - Ingen købsanbefaling` : 'Ingen prisdata tilgængelig'}
+                          </span>
                         )}
                       </div>
 
