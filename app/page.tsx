@@ -114,16 +114,13 @@ export default function Home() {
     setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
-  // Funktion der kopierer ticker til udklipsholder og åbner Saxo
-  const handleOpenSaxo = (symbol: string) => {
+  // Funktion der kopierer ticker til udklipsholder
+  const handleCopyTicker = (symbol: string, name: string) => {
     navigator.clipboard.writeText(symbol).then(() => {
-      alert(`📋 "${symbol}" er kopieret til udklipsholder!\n\nÅbner SaxoInvestor - indsæt blot symbolet i søgefeltet.`);
+      alert(`📋 Kopiér lykkedes!\n\nTicker "${symbol}" (${name}) er nu kopieret til dit udklipsholder.\n\nÅbn blot din Saxo-app og indsæt den i søgefeltet.`);
     }).catch(() => {
-      // Fallback hvis udklipsholder ikke tillades
+      alert(`Kunne ikke kopiere automatisk. Symbol er: ${symbol}`);
     });
-
-    // Åbn SaxoInvestor forsiden / login
-    window.open('https://www.home.saxo/en-dk/accounts/saxoinvestor', '_blank');
   }
 
   const filteredStocks = stocks.filter(stock => {
@@ -358,10 +355,10 @@ export default function Home() {
                       </div>
 
                       <button 
-                        onClick={() => handleOpenSaxo(stock.symbol)}
+                        onClick={() => handleCopyTicker(stock.symbol, stock.name)}
                         className="inline-flex items-center gap-1.5 text-xs bg-gray-900 hover:bg-gray-800 text-gray-200 px-3.5 py-2 rounded-xl font-medium transition border border-gray-700/80 shadow-sm cursor-pointer"
                       >
-                        Kopier Ticker & Åbn Saxo ↗
+                        📋 Kopiér Ticker til Saxo
                       </button>
                     </div>
                   </div>
