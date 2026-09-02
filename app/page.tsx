@@ -45,19 +45,19 @@ export default function Home() {
     <main className="min-h-screen bg-[#070b14] text-white p-4 md:p-12">
       <div className="max-w-4xl mx-auto">
         
-        {/* Header med Logo */}
+        {/* Header med større logo uden boks */}
         <header className="flex flex-col sm:flex-row justify-between items-center mb-8 border-b border-gray-800/80 pb-6 gap-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 text-center sm:text-left">
             <img 
               src="/logo.png" 
               alt="AInvest Logo" 
-              className="w-14 h-14 object-contain rounded-xl shadow-lg border border-emerald-500/20" 
+              className="w-20 h-20 md:w-24 md:h-24 object-contain" 
             />
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
+              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
                 AINVEST
               </h1>
-              <p className="text-xs tracking-wider text-gray-400 uppercase font-mono">AI-Driven Stock Analysis</p>
+              <p className="text-xs tracking-wider text-gray-400 uppercase font-mono mt-0.5">AI-Driven Stock Analysis</p>
             </div>
           </div>
 
