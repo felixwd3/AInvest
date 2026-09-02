@@ -14,9 +14,8 @@ interface Stock {
   ai_reasoning: string | null
 }
 
-const getSaxoLink = () => {
-  const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  return isMobile ? 'https://www.home.saxo/en-dk/accounts/saxoinvestor' : 'https://www.home.saxo/accounts/saxoinvestor';
+const getSaxoLink = (symbol: string) => {
+  return `https://www.home.saxo/en-dk/search?q=${encodeURIComponent(symbol)}`;
 };
 
 export default function Home() {
@@ -25,16 +24,12 @@ export default function Home() {
   const [budget, setBudget] = useState<number>(3000)
   const [analyzing, setAnalyzing] = useState(false)
 
-  // States til ny aktie
   const [newSymbol, setNewSymbol] = useState('')
   const [newName, setNewName] = useState('')
   const [newTimeframe, setNewTimeframe] = useState('LANGSIKTET')
   const [adding, setAdding] = useState(false)
 
-  // Holder styr på hvilke kort der er foldet ud (bruger id som nøgle)
   const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({})
-
-  // Filter fane på oversigten
   const [activeTab, setActiveTab] = useState<'ALLE' | 'LANGSIKTET' | 'KORTSIGTET'>('ALLE')
 
   const fetchStocks = async () => {
@@ -133,7 +128,6 @@ export default function Home() {
     <main className="min-h-screen bg-[#070b14] text-white p-4 md:p-12">
       <div className="max-w-4xl mx-auto">
         
-        {/* Header */}
         <header className="flex flex-col sm:flex-row justify-between items-center mb-8 border-b border-gray-800/80 pb-6 gap-4">
           <div className="flex items-center gap-4 text-center sm:text-left">
             <img 
@@ -163,7 +157,6 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Tilføj ny aktie */}
         <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-6 shadow-xl">
           <h2 className="text-lg font-semibold text-gray-200 mb-3">Tilføj ny aktie med AI-analyse</h2>
           <form onSubmit={handleAddStock} className="flex flex-col gap-3">
@@ -222,7 +215,6 @@ export default function Home() {
           </form>
         </section>
 
-        {/* Positions-beregner */}
         <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-8 shadow-xl">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -241,7 +233,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Sektion med aktier & Faner */}
         <section>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
             <h2 className="text-xl font-semibold text-gray-200 tracking-wide">Overvågede Aktier & Signaler</h2>
@@ -289,7 +280,6 @@ export default function Home() {
                     key={stock.id} 
                     className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 flex flex-col gap-4 hover:border-gray-700 transition shadow-lg relative group"
                   >
-                    {/* Slet-knap */}
                     <button 
                       onClick={() => deleteStock(stock.id, stock.symbol)}
                       className="absolute top-4 right-4 text-gray-600 hover:text-rose-400 transition z-10"
@@ -312,7 +302,6 @@ export default function Home() {
                           </span>
                         </div>
 
-                        {/* AI Tekst med "Vis mere / Vis mindre" */}
                         <div>
                           <p className={`text-sm text-gray-400 max-w-xl transition-all ${!isExpanded ? 'line-clamp-1' : ''}`}>
                             {reasoningText}
@@ -361,12 +350,12 @@ export default function Home() {
                       </div>
 
                       <a 
-                        href={getSaxoLink()}
+                        href={getSaxoLink(stock.symbol)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs bg-gray-900 hover:bg-gray-800 text-gray-200 px-3.5 py-2 rounded-xl font-medium transition border border-gray-700/80 shadow-sm"
                       >
-                        Åbn i SaxoInvestor ↗
+                        Søg i SaxoInvestor ↗
                       </a>
                     </div>
                   </div>
