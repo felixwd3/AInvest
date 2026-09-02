@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       }`
 
       const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash',
         contents: prompt,
       })
 
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
 
       try {
         const response = await ai.models.generateContent({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-2.0-flash',
           contents: prompt,
         })
 
