@@ -7,6 +7,7 @@ interface Stock {
   id: string
   symbol: string
   name: string
+  timeframe?: string
   current_price: number | null
   score: number
   recommendation: string
@@ -24,10 +25,14 @@ export default function Home() {
   const [budget, setBudget] = useState<number>(3000)
   const [analyzing, setAnalyzing] = useState(false)
 
-  // States til at tilføje ny aktie
+  // States til ny aktie
   const [newSymbol, setNewSymbol] = useState('')
   const [newName, setNewName] = useState('')
+  const [newTimeframe, setNewTimeframe] = useState('LANGSIKTET')
   const [adding, setAdding] = useState(false)
+
+  // Filter fane på oversigten
+  const [activeTab, setActiveTab] = useState<'ALLE' | 'LANGSIKTET' | 'KORTSIGTET'>('ALLE')
 
   const fetchStocks = async () => {
     setLoading(true)
@@ -75,7 +80,12 @@ export default function Home() {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'add', symbol: newSymbol, name: newName || newSymbol }),
+        body: JSON.stringify({ 
+          action: 'add', 
+          symbol: newSymbol, 
+          name: newName || newSymbol, 
+          timeframe: newTimeframe 
+        }),
       })
       const data = await res.json()
       if (data.success) {
@@ -93,11 +103,17 @@ export default function Home() {
     }
   }
 
+  const filteredStocks = stocks.filter(stock => {
+    if (activeTab === 'ALLE') return true
+    const tf = stock.timeframe || 'LANGSIKTET'
+    return tf === activeTab
+  })
+
   return (
     <main className="min-h-screen bg-[#070b14] text-white p-4 md:p-12">
       <div className="max-w-4xl mx-auto">
         
-        {/* Header med Logo og AI Knap */}
+        {/* Header */}
         <header className="flex flex-col sm:flex-row justify-between items-center mb-8 border-b border-gray-800/80 pb-6 gap-4">
           <div className="flex items-center gap-4 text-center sm:text-left">
             <img 
@@ -127,32 +143,62 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Tilføj ny aktie formular */}
+        {/* Tilføj ny aktie med Horisont-vælger */}
         <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-6 shadow-xl">
           <h2 className="text-lg font-semibold text-gray-200 mb-3">Tilføj ny aktie med AI-analyse</h2>
-          <form onSubmit={handleAddStock} className="flex flex-col sm:flex-row gap-3">
-            <input 
-              type="text" 
-              placeholder="Virksomhedsnavn (f.eks. Tesla)" 
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white flex-1 text-sm focus:outline-none focus:border-emerald-500"
-            />
-            <input 
-              type="text" 
-              placeholder="Ticker / Tegn (f.eks. TSLA)" 
-              value={newSymbol}
-              onChange={(e) => setNewSymbol(e.target.value)}
-              className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white sm:w-40 text-sm font-mono uppercase focus:outline-none focus:border-emerald-500"
-              required
-            />
-            <button 
-              type="submit"
-              disabled={adding}
-              className="bg-gray-800 hover:bg-gray-700 text-emerald-400 border border-emerald-800/60 font-medium px-5 py-2 rounded-xl text-sm transition disabled:opacity-50"
-            >
-              {adding ? 'Analyserer...' : '+ Tilføj Aktie'}
-            </button>
+          <form onSubmit={handleAddStock} className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input 
+                type="text" 
+                placeholder="Virksomhedsnavn (f.eks. Novo Nordisk)" 
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white flex-1 text-sm focus:outline-none focus:border-emerald-500"
+              />
+              <input 
+                type="text" 
+                placeholder="Ticker (f.eks. NOVO-B)" 
+                value={newSymbol}
+                onChange={(e) => setNewSymbol(e.target.value)}
+                className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white sm:w-40 text-sm font-mono uppercase focus:outline-none focus:border-emerald-500"
+                required
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <span className="text-xs text-gray-400 uppercase font-mono">Horisont:</span>
+                <button
+                  type="button"
+                  onClick={() => setNewTimeframe('LANGSIKTET')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    newTimeframe === 'LANGSIKTET' 
+                      ? 'bg-emerald-500 text-gray-950 shadow-md' 
+                      : 'bg-gray-900 text-gray-400 border border-gray-800'
+                  }`}
+                >
+                  Langsigtet
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewTimeframe('KORTSIGTET')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    newTimeframe === 'KORTSIGTET' 
+                      ? 'bg-cyan-500 text-gray-950 shadow-md' 
+                      : 'bg-gray-900 text-gray-400 border border-gray-800'
+                  }`}
+                >
+                  Kortsigtet (Sving)
+                </button>
+              </div>
+
+              <button 
+                type="submit"
+                disabled={adding}
+                className="bg-gray-800 hover:bg-gray-700 text-emerald-400 border border-emerald-800/60 font-medium px-5 py-2 rounded-xl text-sm transition disabled:opacity-50 w-full sm:w-auto"
+              >
+                {adding ? 'Analyserer...' : '+ Tilføj Aktie'}
+              </button>
+            </div>
           </form>
         </section>
 
@@ -175,22 +221,47 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Sektion med aktier */}
+        {/* Sektion med aktier & Faner */}
         <section>
-          <h2 className="text-xl font-semibold mb-4 text-gray-200 tracking-wide">Overvågede Aktier & Signaler</h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+            <h2 className="text-xl font-semibold text-gray-200 tracking-wide">Overvågede Aktier & Signaler</h2>
+            
+            {/* Filter faner */}
+            <div className="flex items-center bg-[#0b1326] border border-gray-800/80 p-1 rounded-xl">
+              <button 
+                onClick={() => setActiveTab('ALLE')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${activeTab === 'ALLE' ? 'bg-gray-800 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+              >
+                Alle
+              </button>
+              <button 
+                onClick={() => setActiveTab('LANGSIKTET')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${activeTab === 'LANGSIKTET' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/50 shadow' : 'text-gray-400 hover:text-white'}`}
+              >
+                Langsigtet
+              </button>
+              <button 
+                onClick={() => setActiveTab('KORTSIGTET')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${activeTab === 'KORTSIGTET' ? 'bg-cyan-950 text-cyan-300 border border-cyan-800/50 shadow' : 'text-gray-400 hover:text-white'}`}
+              >
+                Kortsigtet
+              </button>
+            </div>
+          </div>
           
           {loading ? (
             <div className="text-center py-12 text-gray-500 font-mono">Henter data...</div>
-          ) : stocks.length === 0 ? (
+          ) : filteredStocks.length === 0 ? (
             <div className="bg-[#0b1326] border border-gray-800 rounded-2xl p-8 text-center text-gray-400">
-              <p>Ingen aktier fundet i databasen endnu.</p>
+              <p>Ingen aktier fundet under denne visning.</p>
             </div>
           ) : (
             <div className="grid gap-4">
-              {stocks.map((stock) => {
+              {filteredStocks.map((stock) => {
                 const price = stock.current_price || 0
                 const calculatedShares = price > 0 ? Math.floor(budget / price) : 0
                 const totalCost = calculatedShares * price
+                const tf = stock.timeframe || 'LANGSIKTET'
 
                 return (
                   <div 
@@ -199,9 +270,14 @@ export default function Home() {
                   >
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                       <div className="space-y-1">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap">
                           <h3 className="text-lg font-bold text-gray-100">{stock.name}</h3>
                           <span className="text-xs bg-gray-900 text-cyan-300 border border-cyan-900/40 px-2.5 py-0.5 rounded-md font-mono">{stock.symbol}</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-mono uppercase tracking-wider ${
+                            tf === 'KORTSIGTET' ? 'bg-cyan-950/80 text-cyan-400 border border-cyan-800/50' : 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/50'
+                          }`}>
+                            {tf}
+                          </span>
                         </div>
                         <p className="text-sm text-gray-400 max-w-xl">{stock.ai_reasoning || "Ingen analyse endnu."}</p>
                       </div>

@@ -21,14 +21,15 @@ export async function POST(request: Request) {
     if (body && body.action === 'add' && body.symbol) {
       const symbol = body.symbol.toUpperCase().trim()
       const name = body.name ? body.name.trim() : symbol
+      const timeframe = body.timeframe || 'LANGSIKTET' // Standard er langsigtet
 
-      const prompt = `Analyser aktien ${name} (${symbol}). 
+      const prompt = `Analyser aktien ${name} (${symbol}) med fokus på en **${timeframe}** investeringshorisont (${timeframe === 'KORTSIGTET' ? 'kortsigtet momentum, tekniske niveauer og sving-handel' : 'langsigtet fundamental styrke og vækst'}). 
       Giv en skarp finansiel vurdering på dansk. 
       Svar KUN i gyldigt JSON-format med følgende felter:
       {
         "score": et tal mellem 0 og 100,
         "recommendation": "KØB", "HOLD" eller "SÆLG",
-        "ai_reasoning": "Kort skarp begrundelse på dansk (maks 2 sætninger)",
+        "ai_reasoning": "Kort skarp begrundelse på dansk tilpasset horisonten (maks 2 sætninger)",
         "current_price": et realistisk nuværende aktiepris-tal som tal (f.eks. 850.5)
       }`
 
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
       const { error: insertError } = await supabase.from('stocks').insert({
         symbol: symbol,
         name: name,
+        timeframe: timeframe,
         score: analysis.score,
         recommendation: analysis.recommendation,
         ai_reasoning: analysis.ai_reasoning,
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
 
       if (insertError) throw insertError
 
-      return NextResponse.json({ success: true, message: `Aktie ${symbol} tilføjet og analyseret!` })
+      return NextResponse.json({ success: true, message: `Aktie ${symbol} tilføjet med ${timeframe} horisont!` })
     }
 
     // OPDATER ALLE EKSISTERENDE AKTIER
@@ -64,13 +66,14 @@ export async function POST(request: Request) {
     }
 
     for (const stock of stocks) {
-      const prompt = `Analyser aktien ${stock.name} (${stock.symbol}). 
+      const tf = stock.timeframe || 'LANGSIKTET'
+      const prompt = `Analyser aktien ${stock.name} (${stock.symbol}) med fokus på en **${tf}** investeringshorisont. 
       Giv en skarp finansiel vurdering på dansk. 
       Svar KUN i gyldigt JSON-format med følgende felter:
       {
         "score": et tal mellem 0 og 100,
         "recommendation": "KØB", "HOLD" eller "SÆLG",
-        "ai_reasoning": "Kort skarp begrundelse på dansk (maks 2 sætninger)",
+        "ai_reasoning": "Kort skarp begrundelse på dansk tilpasset horisonten (maks 2 sætninger)",
         "current_price": et realistisk nuværende aktiepris-tal som tal (f.eks. 850.5)
       }`
 
