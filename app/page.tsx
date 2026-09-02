@@ -31,6 +31,9 @@ export default function Home() {
   const [newTimeframe, setNewTimeframe] = useState('LANGSIKTET')
   const [adding, setAdding] = useState(false)
 
+  // Holder styr på hvilke kort der er foldet ud (bruger id som nøgle)
+  const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({})
+
   // Filter fane på oversigten
   const [activeTab, setActiveTab] = useState<'ALLE' | 'LANGSIKTET' | 'KORTSIGTET'>('ALLE')
 
@@ -103,7 +106,6 @@ export default function Home() {
     }
   }
 
-  // NY FUNKTION: Slet aktie
   const deleteStock = async (id: string, symbol: string) => {
     const confirmDelete = window.confirm(`Er du sikker på, at du vil fjerne ${symbol} fra overvågningen?`)
     if (!confirmDelete) return
@@ -113,9 +115,12 @@ export default function Home() {
     if (error) {
       alert('Fejl ved sletning: ' + error.message)
     } else {
-      // Opdater listen når den er slettet
       setStocks(stocks.filter(stock => stock.id !== id))
     }
+  }
+
+  const toggleExpand = (id: string) => {
+    setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
   const filteredStocks = stocks.filter(stock => {
@@ -158,7 +163,7 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Tilføj ny aktie med Horisont-vælger */}
+        {/* Tilføj ny aktie */}
         <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-6 shadow-xl">
           <h2 className="text-lg font-semibold text-gray-200 mb-3">Tilføj ny aktie med AI-analyse</h2>
           <form onSubmit={handleAddStock} className="flex flex-col gap-3">
@@ -241,7 +246,6 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
             <h2 className="text-xl font-semibold text-gray-200 tracking-wide">Overvågede Aktier & Signaler</h2>
             
-            {/* Filter faner */}
             <div className="flex items-center bg-[#0b1326] border border-gray-800/80 p-1 rounded-xl">
               <button 
                 onClick={() => setActiveTab('ALLE')}
@@ -277,16 +281,18 @@ export default function Home() {
                 const calculatedShares = price > 0 ? Math.floor(budget / price) : 0
                 const totalCost = calculatedShares * price
                 const tf = stock.timeframe || 'LANGSIKTET'
+                const isExpanded = expandedCards[stock.id] || false
+                const reasoningText = stock.ai_reasoning || "Ingen analyse endnu."
 
                 return (
                   <div 
                     key={stock.id} 
                     className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 flex flex-col gap-4 hover:border-gray-700 transition shadow-lg relative group"
                   >
-                    {/* Slet-knap (vises diskret i toppen) */}
+                    {/* Slet-knap */}
                     <button 
                       onClick={() => deleteStock(stock.id, stock.symbol)}
-                      className="absolute top-4 right-4 text-gray-600 hover:text-rose-400 transition"
+                      className="absolute top-4 right-4 text-gray-600 hover:text-rose-400 transition z-10"
                       title="Fjern fra overvågning"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -294,8 +300,8 @@ export default function Home() {
                       </svg>
                     </button>
 
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pr-8">
-                      <div className="space-y-1">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pr-10">
+                      <div className="space-y-1.5 w-full">
                         <div className="flex items-center gap-3 flex-wrap">
                           <h3 className="text-lg font-bold text-gray-100">{stock.name}</h3>
                           <span className="text-xs bg-gray-900 text-cyan-300 border border-cyan-900/40 px-2.5 py-0.5 rounded-md font-mono">{stock.symbol}</span>
@@ -305,10 +311,24 @@ export default function Home() {
                             {tf}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-400 max-w-xl">{stock.ai_reasoning || "Ingen analyse endnu."}</p>
+
+                        {/* AI Tekst med "Vis mere / Vis mindre" */}
+                        <div>
+                          <p className={`text-sm text-gray-400 max-w-xl transition-all ${!isExpanded ? 'line-clamp-1' : ''}`}>
+                            {reasoningText}
+                          </p>
+                          {reasoningText.length > 60 && (
+                            <button 
+                              onClick={() => toggleExpand(stock.id)}
+                              className="text-xs text-emerald-400 hover:text-emerald-300 font-medium mt-1 inline-flex items-center gap-1 focus:outline-none"
+                            >
+                              {isExpanded ? '▲ Vis mindre' : '▼ Vis mere om AI-analyse'}
+                            </button>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0 border-gray-800/80">
+                      <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0 border-gray-800/80 shrink-0">
                         <div className="text-right">
                           <div className="text-xs uppercase tracking-wider text-gray-400">Score</div>
                           <div className="text-xl font-extrabold text-emerald-400 font-mono">{stock.score}/100</div>
