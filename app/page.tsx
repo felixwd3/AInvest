@@ -24,10 +24,11 @@ export default function Home() {
 
   const [newSymbol, setNewSymbol] = useState('')
   const [newName, setNewName] = useState('')
-  const [newTimeframe, setNewTimeframe] = useState('LANGSIKTET')
   const [adding, setAdding] = useState(false)
 
   const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({})
+  
+  // Navigation: 'ALLE' | 'LANGSIKTET' | 'KORTSIGTET'
   const [activeTab, setActiveTab] = useState<'ALLE' | 'LANGSIKTET' | 'KORTSIGTET'>('ALLE')
 
   const fetchStocks = async () => {
@@ -71,6 +72,9 @@ export default function Home() {
     e.preventDefault()
     if (!newSymbol) return
 
+    // Hvis man står i et specifikt univers i bunden, bruges det automatisk som standard, ellers Langsigtet
+    const targetTimeframe = activeTab === 'KORTSIGTET' ? 'KORTSIGTET' : 'LANGSIKTET'
+
     try {
       setAdding(true)
       const res = await fetch('/api/analyze', {
@@ -80,7 +84,7 @@ export default function Home() {
           action: 'add', 
           symbol: newSymbol, 
           name: newName || newSymbol, 
-          timeframe: newTimeframe 
+          timeframe: targetTimeframe 
         }),
       })
       const data = await res.json()
@@ -131,9 +135,10 @@ export default function Home() {
   })
 
   return (
-    <main className="min-h-screen bg-[#070b14] text-white p-4 md:p-12">
+    <main className="min-h-screen bg-[#070b14] text-white p-4 md:p-12 pb-28">
       <div className="max-w-4xl mx-auto">
         
+        {/* Header */}
         <header className="flex flex-col sm:flex-row justify-between items-center mb-8 border-b border-gray-800/80 pb-6 gap-4">
           <div className="flex items-center gap-4 text-center sm:text-left">
             <img 
@@ -145,7 +150,9 @@ export default function Home() {
               <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
                 AINVEST
               </h1>
-              <p className="text-xs tracking-wider text-gray-400 uppercase font-mono mt-0.5">AI-Driven Stock Analysis</p>
+              <p className="text-xs tracking-wider text-gray-400 uppercase font-mono mt-0.5">
+                {activeTab === 'KORTSIGTET' ? '⚡ Sving & Daytrade Univers' : activeTab === 'LANGSIKTET' ? '🛡️ Langsigtet Univers' : 'AI-Driven Stock Analysis'}
+              </p>
             </div>
           </div>
 
@@ -163,64 +170,42 @@ export default function Home() {
           </div>
         </header>
 
+        {/* Tilføj ny aktie formular */}
         <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-6 shadow-xl">
-          <h2 className="text-lg font-semibold text-gray-200 mb-3">Tilføj ny aktie med AI-analyse</h2>
-          <form onSubmit={handleAddStock} className="flex flex-col gap-3">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input 
-                type="text" 
-                placeholder="Virksomhedsnavn (f.eks. Novo Nordisk)" 
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white flex-1 text-sm focus:outline-none focus:border-emerald-500"
-              />
-              <input 
-                type="text" 
-                placeholder="Ticker (f.eks. NOVO-B)" 
-                value={newSymbol}
-                onChange={(e) => setNewSymbol(e.target.value)}
-                className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white sm:w-40 text-sm font-mono uppercase focus:outline-none focus:border-emerald-500"
-                required
-              />
-            </div>
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <span className="text-xs text-gray-400 uppercase font-mono">Horisont:</span>
-                <button
-                  type="button"
-                  onClick={() => setNewTimeframe('LANGSIKTET')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                    newTimeframe === 'LANGSIKTET' 
-                      ? 'bg-emerald-500 text-gray-950 shadow-md' 
-                      : 'bg-gray-900 text-gray-400 border border-gray-800'
-                  }`}
-                >
-                  Langsigtet
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNewTimeframe('KORTSIGTET')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                    newTimeframe === 'KORTSIGTET' 
-                      ? 'bg-cyan-500 text-gray-950 shadow-md' 
-                      : 'bg-gray-900 text-gray-400 border border-gray-800'
-                  }`}
-                >
-                  Kortsigtet (Sving)
-                </button>
-              </div>
-
-              <button 
-                type="submit"
-                disabled={adding}
-                className="bg-gray-800 hover:bg-gray-700 text-emerald-400 border border-emerald-800/60 font-medium px-5 py-2 rounded-xl text-sm transition disabled:opacity-50 w-full sm:w-auto"
-              >
-                {adding ? 'Analyserer...' : '+ Tilføj Aktie'}
-              </button>
-            </div>
+          <h2 className="text-lg font-semibold text-gray-200 mb-3">
+            Tilføj ny aktie til {activeTab === 'KORTSIGTET' ? 'Kortsigtet (Sving)' : 'Langsigtet'}
+          </h2>
+          <form onSubmit={handleAddStock} className="flex flex-col sm:flex-row gap-3">
+            <input 
+              type="text" 
+              placeholder="Virksomhedsnavn (f.eks. Tesla)" 
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white flex-1 text-sm focus:outline-none focus:border-emerald-500"
+            />
+            <input 
+              type="text" 
+              placeholder="Ticker (f.eks. TSLA)" 
+              value={newSymbol}
+              onChange={(e) => setNewSymbol(e.target.value)}
+              className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white sm:w-40 text-sm font-mono uppercase focus:outline-none focus:border-emerald-500"
+              required
+            />
+            <button 
+              type="submit"
+              disabled={adding}
+              className={`font-medium px-5 py-2 rounded-xl text-sm transition disabled:opacity-50 ${
+                activeTab === 'KORTSIGTET' 
+                  ? 'bg-cyan-600 hover:bg-cyan-500 text-gray-950 font-bold' 
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-gray-950 font-bold'
+              }`}
+            >
+              {adding ? 'Analyserer...' : '+ Tilføj Aktie'}
+            </button>
           </form>
         </section>
 
+        {/* Positions-beregner */}
         <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-8 shadow-xl">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -239,37 +224,24 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Sektion med aktier */}
         <section>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-            <h2 className="text-xl font-semibold text-gray-200 tracking-wide">Overvågede Aktier & Signaler</h2>
-            
-            <div className="flex items-center bg-[#0b1326] border border-gray-800/80 p-1 rounded-xl">
-              <button 
-                onClick={() => setActiveTab('ALLE')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${activeTab === 'ALLE' ? 'bg-gray-800 text-white shadow' : 'text-gray-400 hover:text-white'}`}
-              >
-                Alle
-              </button>
-              <button 
-                onClick={() => setActiveTab('LANGSIKTET')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${activeTab === 'LANGSIKTET' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/50 shadow' : 'text-gray-400 hover:text-white'}`}
-              >
-                Langsigtet
-              </button>
-              <button 
-                onClick={() => setActiveTab('KORTSIGTET')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${activeTab === 'KORTSIGTET' ? 'bg-cyan-950 text-cyan-300 border border-cyan-800/50 shadow' : 'text-gray-400 hover:text-white'}`}
-              >
-                Kortsigtet
-              </button>
-            </div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-200 tracking-wide">
+              {activeTab === 'ALLE' && 'Overvågede Aktier (Alle)'}
+              {activeTab === 'LANGSIKTET' && '🛡️ Langsigtede Ankre'}
+              {activeTab === 'KORTSIGTET' && '⚡ Korte Sving & Momentum'}
+            </h2>
+            <span className="text-xs font-mono text-gray-400">
+              {filteredStocks.length} stk. fundet
+            </span>
           </div>
           
           {loading ? (
             <div className="text-center py-12 text-gray-500 font-mono">Henter data...</div>
           ) : filteredStocks.length === 0 ? (
             <div className="bg-[#0b1326] border border-gray-800 rounded-2xl p-8 text-center text-gray-400">
-              <p>Ingen aktier fundet under denne visning.</p>
+              <p>Ingen aktier i dette univers endnu. Tilføj en ovenfor!</p>
             </div>
           ) : (
             <div className="grid gap-4">
@@ -322,7 +294,7 @@ export default function Home() {
                           )}
                         </div>
 
-                        {/* RISIKOSTYRING / EXIT NIVEAUER */}
+                        {/* Stop Loss & Take Profit */}
                         {(stock.stop_loss || stock.take_profit) && (
                           <div className="flex items-center gap-4 pt-2 text-xs font-mono">
                             <span className="text-rose-400 bg-rose-950/40 border border-rose-900/40 px-2.5 py-1 rounded-lg">
@@ -381,6 +353,35 @@ export default function Home() {
           )}
         </section>
       </div>
+
+      {/* FAST BUNDMENU (MOBILE TAB BAR) */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#0b1326]/95 backdrop-blur-md border-t border-gray-800 py-3 px-6 z-50 shadow-2xl">
+        <div className="max-w-md mx-auto flex justify-around items-center">
+          <button 
+            onClick={() => setActiveTab('ALLE')}
+            className={`flex flex-col items-center gap-1 transition ${activeTab === 'ALLE' ? 'text-emerald-400 font-bold' : 'text-gray-400 hover:text-gray-200'}`}
+          >
+            <span className="text-lg">🏠</span>
+            <span className="text-[11px] tracking-wide">Alle</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('LANGSIKTET')}
+            className={`flex flex-col items-center gap-1 transition ${activeTab === 'LANGSIKTET' ? 'text-emerald-400 font-bold' : 'text-gray-400 hover:text-gray-200'}`}
+          >
+            <span className="text-lg">🛡️</span>
+            <span className="text-[11px] tracking-wide">Langsigtet</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('KORTSIGTET')}
+            className={`flex flex-col items-center gap-1 transition ${activeTab === 'KORTSIGTET' ? 'text-cyan-400 font-bold' : 'text-gray-400 hover:text-gray-200'}`}
+          >
+            <span className="text-lg">⚡</span>
+            <span className="text-[11px] tracking-wide">Kortsigtet (Sving)</span>
+          </button>
+        </div>
+      </nav>
     </main>
   )
 }
