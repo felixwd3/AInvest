@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { GoogleGenAI } from '@google/genai'
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) {
@@ -10,8 +10,53 @@ export async function POST() {
     }
 
     const ai = new GoogleGenAI({ apiKey })
+    let body: any = {}
+    try {
+      body = await request.json()
+    } catch (e) {
+      // Hvis der ikke sendes JSON med, kører vi en standard opdatering af alle
+    }
 
-    // 1. Hent alle aktier fra Supabase
+    // HVIS BRUGEREN VIL TILFØJE EN NY AKTIE
+    if (body && body.action === 'add' && body.symbol) {
+      const symbol = body.symbol.toUpperCase().trim()
+      const name = body.name ? body.name.trim() : symbol
+
+      const prompt = `Analyser aktien ${name} (${symbol}). 
+      Giv en skarp finansiel vurdering på dansk. 
+      Svar KUN i gyldigt JSON-format med følgende felter:
+      {
+        "score": et tal mellem 0 og 100,
+        "recommendation": "KØB", "HOLD" eller "SÆLG",
+        "ai_reasoning": "Kort skarp begrundelse på dansk (maks 2 sætninger)",
+        "current_price": et realistisk nuværende aktiepris-tal som tal (f.eks. 850.5)
+      }`
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+      })
+
+      const textResponse = response.text || ''
+      const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim()
+      const analysis = JSON.parse(cleanJson)
+
+      // Indsæt den nye aktie i Supabase
+      const { error: insertError } = await supabase.from('stocks').insert({
+        symbol: symbol,
+        name: name,
+        score: analysis.score,
+        recommendation: analysis.recommendation,
+        ai_reasoning: analysis.ai_reasoning,
+        current_price: analysis.current_price,
+      })
+
+      if (insertError) throw insertError
+
+      return NextResponse.json({ success: true, message: `Aktie ${symbol} tilføjet og analyseret!` })
+    }
+
+    // ELLERS: OPDATER ALLE EKSISTERENDE AKTIER
     const { data: stocks, error: fetchError } = await supabase.from('stocks').select('*')
     if (fetchError) throw fetchError
 
@@ -19,7 +64,6 @@ export async function POST() {
       return NextResponse.json({ message: 'Ingen aktier at analysere' })
     }
 
-    // 2. Loop igennem aktierne og lad Gemini analysere dem
     for (const stock of stocks) {
       const prompt = `Analyser aktien ${stock.name} (${stock.symbol}). 
       Giv en skarp finansiel vurdering på dansk. 
@@ -41,7 +85,6 @@ export async function POST() {
         const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim()
         const analysis = JSON.parse(cleanJson)
 
-        // 3. Opdater databasen med Geminis resultater
         await supabase
           .from('stocks')
           .update({

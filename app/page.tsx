@@ -24,6 +24,11 @@ export default function Home() {
   const [budget, setBudget] = useState<number>(3000)
   const [analyzing, setAnalyzing] = useState(false)
 
+  // States til at tilføje ny aktie
+  const [newSymbol, setNewSymbol] = useState('')
+  const [newName, setNewName] = useState('')
+  const [adding, setAdding] = useState(false)
+
   const fetchStocks = async () => {
     setLoading(true)
     const { data, error } = await supabase
@@ -61,6 +66,33 @@ export default function Home() {
     }
   }
 
+  const handleAddStock = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newSymbol) return
+
+    try {
+      setAdding(true)
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add', symbol: newSymbol, name: newName || newSymbol }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setNewSymbol('')
+        setNewName('')
+        await fetchStocks()
+      } else {
+        alert('Fejl ved tilføjelse: ' + (data.error || 'Ukendt fejl'))
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Der opstod en fejl.')
+    } finally {
+      setAdding(false)
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#070b14] text-white p-4 md:p-12">
       <div className="max-w-4xl mx-auto">
@@ -94,6 +126,35 @@ export default function Home() {
             </span>
           </div>
         </header>
+
+        {/* Tilføj ny aktie formular */}
+        <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-6 shadow-xl">
+          <h2 className="text-lg font-semibold text-gray-200 mb-3">Tilføj ny aktie med AI-analyse</h2>
+          <form onSubmit={handleAddStock} className="flex flex-col sm:flex-row gap-3">
+            <input 
+              type="text" 
+              placeholder="Virksomhedsnavn (f.eks. Tesla)" 
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white flex-1 text-sm focus:outline-none focus:border-emerald-500"
+            />
+            <input 
+              type="text" 
+              placeholder="Ticker / Tegn (f.eks. TSLA)" 
+              value={newSymbol}
+              onChange={(e) => setNewSymbol(e.target.value)}
+              className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white sm:w-40 text-sm font-mono uppercase focus:outline-none focus:border-emerald-500"
+              required
+            />
+            <button 
+              type="submit"
+              disabled={adding}
+              className="bg-gray-800 hover:bg-gray-700 text-emerald-400 border border-emerald-800/60 font-medium px-5 py-2 rounded-xl text-sm transition disabled:opacity-50"
+            >
+              {adding ? 'Analyserer...' : '+ Tilføj Aktie'}
+            </button>
+          </form>
+        </section>
 
         {/* Positions-beregner */}
         <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-8 shadow-xl">
@@ -142,7 +203,7 @@ export default function Home() {
                           <h3 className="text-lg font-bold text-gray-100">{stock.name}</h3>
                           <span className="text-xs bg-gray-900 text-cyan-300 border border-cyan-900/40 px-2.5 py-0.5 rounded-md font-mono">{stock.symbol}</span>
                         </div>
-                        <p className="text-sm text-gray-400 max-w-xl">{stock.ai_reasoning || "Tryk på 'Kør AI Analyse' for at hente vurdering."}</p>
+                        <p className="text-sm text-gray-400 max-w-xl">{stock.ai_reasoning || "Ingen analyse endnu."}</p>
                       </div>
 
                       <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0 border-gray-800/80">
