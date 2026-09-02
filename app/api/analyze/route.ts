@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     try {
       body = await request.json()
     } catch (e) {
-      // Hvis der ikke sendes JSON med, kører vi en standard opdatering af alle
+      // Ingen JSON body
     }
 
     // HVIS BRUGEREN VIL TILFØJE EN NY AKTIE
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       }`
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-1.5-flash',
         contents: prompt,
       })
 
@@ -41,7 +41,6 @@ export async function POST(request: Request) {
       const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim()
       const analysis = JSON.parse(cleanJson)
 
-      // Indsæt den nye aktie i Supabase
       const { error: insertError } = await supabase.from('stocks').insert({
         symbol: symbol,
         name: name,
@@ -56,7 +55,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: `Aktie ${symbol} tilføjet og analyseret!` })
     }
 
-    // ELLERS: OPDATER ALLE EKSISTERENDE AKTIER
+    // OPDATER ALLE EKSISTERENDE AKTIER
     const { data: stocks, error: fetchError } = await supabase.from('stocks').select('*')
     if (fetchError) throw fetchError
 
@@ -77,7 +76,7 @@ export async function POST(request: Request) {
 
       try {
         const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-1.5-flash',
           contents: prompt,
         })
 
