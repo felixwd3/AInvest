@@ -2,6 +2,15 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { GoogleGenAI } from '@google/genai'
 
+// Hjælpefunktion til at rense priser, så de kun indeholder tal (fjerner "USD", "DKK", etc.)
+function parseNumeric(val: any): number | null {
+  if (val === null || val === undefined) return null
+  if (typeof val === 'number') return val
+  const cleaned = String(val).replace(/[^0-9.,]/g, '').replace(',', '.')
+  const num = parseFloat(cleaned)
+  return isNaN(num) ? null : num
+}
+
 async function generateWithFallback(ai: GoogleGenAI, prompt: string) {
   try {
     const response = await ai.models.generateContent({
@@ -42,16 +51,17 @@ export async function POST(request: Request) {
       const timeframe = body.timeframe || 'LANGSIKTET'
 
       const prompt = `Analyser aktien ${name} (${symbol}) med fokus på en **${timeframe}** horisont for en nybegynder. 
-      Giv en skarp finansiel vurdering på dansk. Inkluder Stop-Loss, Take-Profit og en helt pædagogisk, letforståelig forklaring til en nybegynder om hvorfor denne aktie er interessant.
+      Giv en skarp finansiel vurdering på dansk. 
+      VIGTIGT: Felterne current_price, stop_loss og take_profit SKAL KUN VÆRE RENE TAL (f.eks. 415.5), uden valuta (ingen USD, DKK etc.).
       Svar KUN i gyldigt JSON-format med følgende felter:
       {
         "score": et tal mellem 0 og 100,
         "recommendation": "KØB", "HOLD" eller "SÆLG",
         "ai_reasoning": "Kort finansiel begrundelse på dansk (maks 2 sætninger)",
         "beginner_explanation": "En superlet og tryg forklaring på dansk for en nybegynder",
-        "current_price": et realistisk nuværende aktiepris-tal som tal (f.eks. 850.5),
-        "stop_loss": et tal,
-        "take_profit": et tal
+        "current_price": et rent tal,
+        "stop_loss": et rent tal,
+        "take_profit": et rent tal
       }`
 
       const textResponse = await generateWithFallback(ai, prompt)
@@ -62,19 +72,16 @@ export async function POST(request: Request) {
         symbol: symbol,
         name: name,
         timeframe: timeframe,
-        score: analysis.score,
-        recommendation: analysis.recommendation,
-        ai_reasoning: analysis.ai_reasoning,
-        beginner_explanation: analysis.beginner_explanation,
-        current_price: analysis.current_price,
-        stop_loss: analysis.stop_loss,
-        take_profit: analysis.take_profit,
+        score: Number(analysis.score) || 50,
+        recommendation: analysis.recommendation || 'HOLD',
+        ai_reasoning: analysis.ai_reasoning || '',
+        beginner_explanation: analysis.beginner_explanation || '',
+        current_price: parseNumeric(analysis.current_price),
+        stop_loss: parseNumeric(analysis.stop_loss),
+        take_profit: parseNumeric(analysis.take_profit),
       })
 
-      if (insertError) {
-        console.error('Supabase insert fejl:', insertError)
-        return NextResponse.json({ error: 'Database fejl: ' + insertError.message }, { status: 400 })
-      }
+      if (insertError) throw new Error('Database fejl ved oprettelse: ' + insertError.message)
 
       return NextResponse.json({ success: true, message: `Aktie ${symbol} tilføjet!` })
     }
@@ -82,30 +89,28 @@ export async function POST(request: Request) {
     // AI DISCOVER NYHED / ANBEFALING
     if (body && body.action === 'discover') {
       const timeframe = body.timeframe || 'LANGSIKTET'
-      const prompt = `Foreslå 1 aktie der er spændende lige nu til en ${timeframe} horisont for en nybegynder.
+      const prompt = `Foreslå 1 aktie der er spændende lige nu til en ${timeframe} horisont for en nybegynder. 
+      VIGTIGT: current_price, stop_loss og take_profit SKAL VÆRE RENE TAL uden valuta.
       Svar KUN i gyldigt JSON-format med felterne: symbol, name, score, recommendation, ai_reasoning, beginner_explanation, current_price, stop_loss, take_profit.`
 
       const textResponse = await generateWithFallback(ai, prompt)
       const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim()
       const suggestion = JSON.parse(cleanJson)
 
-      const { error: discoverError } = await supabase.from('stocks').insert({
+      const { error: insertError } = await supabase.from('stocks').insert({
         symbol: suggestion.symbol,
         name: suggestion.name,
         timeframe: timeframe,
-        score: suggestion.score,
-        recommendation: suggestion.recommendation,
-        ai_reasoning: suggestion.ai_reasoning,
-        beginner_explanation: suggestion.beginner_explanation,
-        current_price: suggestion.current_price,
-        stop_loss: suggestion.stop_loss,
-        take_profit: suggestion.take_profit,
+        score: Number(suggestion.score) || 75,
+        recommendation: suggestion.recommendation || 'KØB',
+        ai_reasoning: suggestion.ai_reasoning || '',
+        beginner_explanation: suggestion.beginner_explanation || '',
+        current_price: parseNumeric(suggestion.current_price),
+        stop_loss: parseNumeric(suggestion.stop_loss),
+        take_profit: parseNumeric(suggestion.take_profit),
       })
 
-      if (discoverError) {
-        console.error('Supabase discover insert fejl:', discoverError)
-        return NextResponse.json({ error: 'Database fejl ved oprettelse: ' + discoverError.message }, { status: 400 })
-      }
+      if (insertError) throw new Error('Database fejl ved AI-anbefaling: ' + insertError.message)
 
       return NextResponse.json({ success: true, message: `Fandt og tilføjede ${suggestion.name}!` })
     }
@@ -115,12 +120,13 @@ export async function POST(request: Request) {
     if (fetchError) throw fetchError
 
     if (!stocks || stocks.length === 0) {
-      return NextResponse.json({ message: 'Ingen aktier at analysere' })
+      return NextResponse.json({ success: true, message: 'Ingen aktier at opdatere endnu.' })
     }
 
     const updatePromises = stocks.map(async (stock) => {
       const tf = stock.timeframe || 'LANGSIKTET'
       const prompt = `Analyser aktien ${stock.name} (${stock.symbol}) med fokus på en **${tf}** horisont for en nybegynder. 
+      VIGTIGT: current_price, stop_loss og take_profit SKAL VÆRE RENE TAL uden valuta.
       Svar KUN i gyldigt JSON-format med felterne: score, recommendation, ai_reasoning, beginner_explanation, current_price, stop_loss, take_profit.`
 
       try {
@@ -131,13 +137,13 @@ export async function POST(request: Request) {
         await supabase
           .from('stocks')
           .update({
-            score: analysis.score,
-            recommendation: analysis.recommendation,
-            ai_reasoning: analysis.ai_reasoning,
-            beginner_explanation: analysis.beginner_explanation,
-            current_price: analysis.current_price,
-            stop_loss: analysis.stop_loss,
-            take_profit: analysis.take_profit,
+            score: Number(analysis.score) || stock.score,
+            recommendation: analysis.recommendation || stock.recommendation,
+            ai_reasoning: analysis.ai_reasoning || stock.ai_reasoning,
+            beginner_explanation: analysis.beginner_explanation || stock.beginner_explanation,
+            current_price: parseNumeric(analysis.current_price),
+            stop_loss: parseNumeric(analysis.stop_loss),
+            take_profit: parseNumeric(analysis.take_profit),
           })
           .eq('id', stock.id)
       } catch (err) {
