@@ -2,6 +2,25 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { GoogleGenAI } from '@google/genai'
 
+// Sikker fallback mellem stabile Gemini 3.x Flash modeller
+async function generateWithFallback(ai: GoogleGenAI, prompt: string) {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.7-flash',
+      contents: prompt,
+    })
+    if (response.text) return response.text
+  } catch (err: any) {
+    console.warn('Gemini-3.7-flash havde travlhed, prøver 3.5-flash...', err)
+  }
+
+  const fallbackResponse = await ai.models.generateContent({
+    model: 'gemini-3.5-flash',
+    contents: prompt,
+  })
+  return fallbackResponse.text || ''
+}
+
 export async function POST(request: Request) {
   try {
     const apiKey = process.env.GEMINI_API_KEY
@@ -36,12 +55,7 @@ export async function POST(request: Request) {
         "take_profit": et tal
       }`
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
-        contents: prompt,
-      })
-
-      const textResponse = response.text || ''
+      const textResponse = await generateWithFallback(ai, prompt)
       const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim()
       const analysis = JSON.parse(cleanJson)
 
@@ -69,12 +83,7 @@ export async function POST(request: Request) {
       const prompt = `Foreslå 1 aktie der er spændende lige nu til en ${timeframe} horisont for en nybegynder.
       Svar KUN i gyldigt JSON-format med felterne: symbol, name, score, recommendation, ai_reasoning, beginner_explanation, current_price, stop_loss, take_profit.`
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
-        contents: prompt,
-      })
-
-      const textResponse = response.text || ''
+      const textResponse = await generateWithFallback(ai, prompt)
       const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim()
       const suggestion = JSON.parse(cleanJson)
 
@@ -94,7 +103,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: `Fandt og tilføjede ${suggestion.name}!` })
     }
 
-    // HURTIG OPATRING AF ALLE AKTIER (PARALLEL KØRSEL MED Promise.all)
+    // LYNOPDATÉR ALLE AKTIER MED PARALLEL KØRSEL OG FALLBACK
     const { data: stocks, error: fetchError } = await supabase.from('stocks').select('*')
     if (fetchError) throw fetchError
 
@@ -102,19 +111,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Ingen aktier at analysere' })
     }
 
-    // Start alle analyser på én gang i stedet for efter hinanden
     const updatePromises = stocks.map(async (stock) => {
       const tf = stock.timeframe || 'LANGSIKTET'
       const prompt = `Analyser aktien ${stock.name} (${stock.symbol}) med fokus på en **${tf}** horisont for en nybegynder. 
       Svar KUN i gyldigt JSON-format med felterne: score, recommendation, ai_reasoning, beginner_explanation, current_price, stop_loss, take_profit.`
 
       try {
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
-          contents: prompt,
-        })
-
-        const textResponse = response.text || ''
+        const textResponse = await generateWithFallback(ai, prompt)
         const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim()
         const analysis = JSON.parse(cleanJson)
 
@@ -135,7 +138,6 @@ export async function POST(request: Request) {
       }
     })
 
-    // Vent på at alle er færdige samtidigt
     await Promise.all(updatePromises)
 
     return NextResponse.json({ success: true, message: 'Alle aktier lynopdateret!' })
