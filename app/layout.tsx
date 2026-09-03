@@ -1,4 +1,3 @@
-import type { Metadata } from 'next/head'
 import './globals.css'
 
 export const metadata = {
@@ -22,7 +21,6 @@ export default function RootLayout({
       <body className="bg-[#070b14] text-white">
         {children}
 
-        {/* Automatisk registrering af Service Worker til push-notifikationer */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
