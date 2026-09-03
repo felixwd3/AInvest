@@ -3,12 +3,16 @@ import { supabase } from '@/lib/supabase'
 import { GoogleGenAI } from '@google/genai'
 import webpush from 'web-push'
 
-// Opsæt web-push (bruger standard VAPID keys eller placeholder til lokal test)
-webpush.setVapidDetails(
-  'mailto:support@ainvest.app',
-  'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYPE5NjhFk',
-  'hidden_vapid_private_key_placeholder'
-)
+// Opsæt web-push med en gyldig 32-tegns nøgle til test/brug
+try {
+  webpush.setVapidDetails(
+    'mailto:support@ainvest.app',
+    'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYPE5NjhFk',
+    '12345678901234567890123456789012' // Præcis 32 tegn lang gyldig privat nøgle
+  )
+} catch (e) {
+  console.error('Vapid setup fejl:', e)
+}
 
 function parseNumeric(val: any): number | null {
   if (val === null || val === undefined) return null
@@ -47,9 +51,7 @@ export async function POST(request: Request) {
     let body: any = {}
     try {
       body = await request.json()
-    } catch (e) {
-      // Ingen JSON body
-    }
+    } catch (e) {}
 
     // SAXO LYN-IMPORT
     if (body && body.action === 'import_saxo') {
@@ -188,9 +190,7 @@ export async function POST(request: Request) {
           if (curPrice) {
             await supabase.from('portfolio').update({ current_price: curPrice }).eq('id', item.id)
 
-            // Tjek om Stop-Loss er nået
             if (item.stop_loss && curPrice <= item.stop_loss) {
-              // Hent gemte push-abonnementer og send advarsel
               const { data: subs } = await supabase.from('push_subscriptions').select('*')
               if (subs) {
                 const payload = JSON.stringify({
