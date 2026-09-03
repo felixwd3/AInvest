@@ -57,12 +57,13 @@ export default function Home() {
       const data = await res.json()
       if (data.success) {
         await fetchStocks()
+        alert('✨ Kurser og analyser er opdateret!')
       } else {
-        alert('Fejl under analyse: ' + (data.error || 'Ukendt fejl'))
+        alert('Fejl under opdatering: ' + (data.error || 'Ukendt fejl'))
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      alert('Der opstod en fejl.')
+      alert('Der opstod en netværksfejl under opdatering.')
     } finally {
       setAnalyzing(false)
     }
@@ -80,12 +81,13 @@ export default function Home() {
       const data = await res.json()
       if (data.success) {
         await fetchStocks()
+        alert('🔍 AI har fundet og tilføjet en ny spændende aktie!')
       } else {
         alert('Fejl ved AI-screening: ' + (data.error || 'Ukendt fejl'))
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      alert('Der opstod en fejl.')
+      alert('Der opstod en netværksfejl ved AI-screening.')
     } finally {
       setDiscovering(false)
     }
@@ -114,12 +116,13 @@ export default function Home() {
         setNewSymbol('')
         setNewName('')
         await fetchStocks()
+        alert(`✅ Aktie ${newSymbol} tilføjet!`)
       } else {
         alert('Fejl ved tilføjelse: ' + (data.error || 'Ukendt fejl'))
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      alert('Der opstod en fejl.')
+      alert('Der opstod en netværksfejl.')
     } finally {
       setAdding(false)
     }
@@ -181,21 +184,21 @@ export default function Home() {
             <button
               onClick={discoverNewStock}
               disabled={discovering}
-              className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-bold px-3 py-2.5 rounded-xl text-xs tracking-wide transition shadow-lg disabled:opacity-50"
+              className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-bold px-3 py-2.5 rounded-xl text-xs tracking-wide transition shadow-lg disabled:opacity-50 cursor-pointer"
             >
-              {discovering ? 'AI scanner nyheder...' : '🔍 Få AI Anbefaling'}
+              {discovering ? '🔍 AI scanner nyheder...' : '🔍 Få AI Anbefaling'}
             </button>
             <button
               onClick={runAiAnalysis}
               disabled={analyzing}
-              className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-gray-950 font-bold px-3 py-2.5 rounded-xl text-xs tracking-wide transition shadow-lg disabled:opacity-50"
+              className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-gray-950 font-bold px-3 py-2.5 rounded-xl text-xs tracking-wide transition shadow-lg disabled:opacity-50 cursor-pointer"
             >
-              {analyzing ? 'Opdaterer...' : '✨ Opdater Kurser'}
+              {analyzing ? '⏳ Opdaterer...' : '✨ Opdater Kurser'}
             </button>
           </div>
         </header>
 
-        {/* NY BEGYNDER-RÅDGIVER BOKS */}
+        {/* Rådgiver boks */}
         <section className="bg-gradient-to-r from-emerald-950/40 to-cyan-950/40 border border-emerald-800/40 rounded-2xl p-5 mb-6 shadow-lg flex items-start gap-3">
           <span className="text-2xl">💡</span>
           <div>
@@ -230,13 +233,13 @@ export default function Home() {
             <button 
               type="submit"
               disabled={adding}
-              className={`font-medium px-5 py-2 rounded-xl text-sm transition disabled:opacity-50 ${
+              className={`font-medium px-5 py-2 rounded-xl text-sm transition disabled:opacity-50 cursor-pointer ${
                 activeTab === 'KORTSIGTET' 
                   ? 'bg-cyan-600 hover:bg-cyan-500 text-gray-950 font-bold' 
                   : 'bg-emerald-600 hover:bg-emerald-500 text-gray-950 font-bold'
               }`}
             >
-              {adding ? 'Analyserer...' : '+ Tilføj Aktie'}
+              {adding ? '⏳ Analyserer...' : '+ Tilføj Aktie'}
             </button>
           </form>
         </section>
@@ -297,7 +300,7 @@ export default function Home() {
                   >
                     <button 
                       onClick={() => deleteStock(stock.id, stock.symbol)}
-                      className="absolute top-4 right-4 text-gray-600 hover:text-rose-400 transition z-10"
+                      className="absolute top-4 right-4 text-gray-600 hover:text-rose-400 transition z-10 cursor-pointer"
                       title="Fjern fra overvågning"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -317,13 +320,11 @@ export default function Home() {
                           </span>
                         </div>
 
-                        {/* AI Begrundelse */}
                         <div>
                           <p className={`text-sm text-gray-400 max-w-xl transition-all ${!isExpanded ? 'line-clamp-1' : ''}`}>
                             {reasoningText}
                           </p>
                           
-                          {/* Ekstra begynderforklaring, der foldes ud */}
                           {isExpanded && (
                             <div className="mt-2.5 p-3 bg-emerald-950/30 border border-emerald-900/40 rounded-xl text-xs text-emerald-200/90 leading-relaxed font-sans">
                               <strong className="text-emerald-400 block mb-1">🎓 Begynder-forklaring:</strong>
@@ -333,13 +334,12 @@ export default function Home() {
 
                           <button 
                             onClick={() => toggleExpand(stock.id)}
-                            className="text-xs text-emerald-400 hover:text-emerald-300 font-medium mt-1 inline-flex items-center gap-1 focus:outline-none"
+                            className="text-xs text-emerald-400 hover:text-emerald-300 font-medium mt-1 inline-flex items-center gap-1 focus:outline-none cursor-pointer"
                           >
                             {isExpanded ? '▲ Vis mindre' : '▼ Vis mere & Begynder-guide'}
                           </button>
                         </div>
 
-                        {/* Stop Loss & Take Profit */}
                         {(stock.stop_loss || stock.take_profit) && (
                           <div className="flex items-center gap-4 pt-1 text-xs font-mono">
                             <span className="text-rose-400 bg-rose-950/40 border border-rose-900/40 px-2.5 py-1 rounded-lg">
