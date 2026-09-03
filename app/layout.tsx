@@ -1,19 +1,11 @@
+import type { Metadata } from 'next/head'
 import './globals.css'
-import type { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: 'AInvest',
-  description: 'Din personlige investeringsassistent og beslutningsstøtte',
+export const metadata = {
+  title: 'AINVEST',
+  description: 'Din Personlige AI Aktierådgiver',
   manifest: '/manifest.json',
-  icons: {
-    icon: '/icon.png',
-    apple: '/icon.png',
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'AInvest',
-  },
+  themeColor: '#070b14',
 }
 
 export default function RootLayout({
@@ -23,7 +15,30 @@ export default function RootLayout({
 }) {
   return (
     <html lang="da">
-      <body className="bg-[#070b14] text-white antialiased">{children}</body>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#070b14" />
+      </head>
+      <body className="bg-[#070b14] text-white">
+        {children}
+
+        {/* Automatisk registrering af Service Worker til push-notifikationer */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                    console.log('ServiceWorker registreret med succes: ', registration.scope);
+                  }, function(err) {
+                    console.log('ServiceWorker registrering fejlede: ', err);
+                  });
+                });
+              }
+            `,
+          }}
+        />
+      </body>
     </html>
   )
 }
