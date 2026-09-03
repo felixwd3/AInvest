@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       // Ingen JSON body
     }
 
-    // TILFØJ SPECIFIK AKTIE MED BEGYNDER-VENLIG FORKLARING
+    // TILFØJ SPECIFIK AKTIE
     if (body && body.action === 'add' && body.symbol) {
       const symbol = body.symbol.toUpperCase().trim()
       const name = body.name ? body.name.trim() : symbol
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
         "score": et tal mellem 0 og 100,
         "recommendation": "KØB", "HOLD" eller "SÆLG",
         "ai_reasoning": "Kort finansiel begrundelse på dansk (maks 2 sætninger)",
-        "beginner_explanation": "En superlet og tryg forklaring på dansk for en nybegynder (f.eks. hvad virksomheden laver, og hvorfor den passer til strategien)",
+        "beginner_explanation": "En superlet og tryg forklaring på dansk for en nybegynder",
         "current_price": et realistisk nuværende aktiepris-tal som tal (f.eks. 850.5),
         "stop_loss": et tal,
         "take_profit": et tal
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: `Fandt og tilføjede ${suggestion.name}!` })
     }
 
-    // OPDATER EKSISTERENDE AKTIER
+    // HURTIG OPATRING AF ALLE AKTIER (PARALLEL KØRSEL MED Promise.all)
     const { data: stocks, error: fetchError } = await supabase.from('stocks').select('*')
     if (fetchError) throw fetchError
 
@@ -102,7 +102,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Ingen aktier at analysere' })
     }
 
-    for (const stock of stocks) {
+    // Start alle analyser på én gang i stedet for efter hinanden
+    const updatePromises = stocks.map(async (stock) => {
       const tf = stock.timeframe || 'LANGSIKTET'
       const prompt = `Analyser aktien ${stock.name} (${stock.symbol}) med fokus på en **${tf}** horisont for en nybegynder. 
       Svar KUN i gyldigt JSON-format med felterne: score, recommendation, ai_reasoning, beginner_explanation, current_price, stop_loss, take_profit.`
@@ -132,9 +133,12 @@ export async function POST(request: Request) {
       } catch (err) {
         console.error(`Fejl ved analyse af ${stock.symbol}:`, err)
       }
-    }
+    })
 
-    return NextResponse.json({ success: true, message: 'Opdateret!' })
+    // Vent på at alle er færdige samtidigt
+    await Promise.all(updatePromises)
+
+    return NextResponse.json({ success: true, message: 'Alle aktier lynopdateret!' })
   } catch (error: any) {
     console.error('API Fejl:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
