@@ -37,10 +37,10 @@ export default function Home() {
   const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({})
   const [activeTab, setActiveTab] = useState<'ALLE' | 'LANGSIKTET' | 'KORTSIGTET'>('KORTSIGTET')
 
-  const [marketPulse, setMarketPulse] = useState<MarketPulse>({
+ const [marketPulse, setMarketPulse] = useState<MarketPulse>({
     status: 'ROLIGT',
     headline: 'Tager temperaturen på markedet...',
-    advice: 'Vent et øjeblik mens AI'en tjekker stemningen.'
+    advice: "Vent et øjeblik mens AI'en tjekker stemningen."
   })
 
   const fetchStocks = async () => {
