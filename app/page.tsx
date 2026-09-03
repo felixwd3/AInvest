@@ -46,14 +46,10 @@ export default function Home() {
   const [newName, setNewName] = useState('')
   const [adding, setAdding] = useState(false)
 
-  // Saxo lyn-import state
   const [saxoText, setSaxoText] = useState('')
   const [importing, setImporting] = useState(false)
 
-  // Push notifikationer state
   const [pushEnabled, setPushEnabled] = useState(false)
-
-  const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({})
   const [activeTab, setActiveTab] = useState<'KORTSIGTET' | 'LANGSIKTET' | 'PORTEFØLJE'>('KORTSIGTET')
 
   const [marketPulse, setMarketPulse] = useState<MarketPulse>({
@@ -99,18 +95,13 @@ export default function Home() {
 
   const requestPushPermission = async () => {
     if (!('Notification' in window)) {
-      alert('Din enhed understøtter desværre ikke notifikationer.')
+      alert('Din enhed understøtter ikke notifikationer.')
       return
     }
 
     const permission = await Notification.requestPermission()
     if (permission === 'granted') {
       setPushEnabled(true)
-      new Notification('AINVEST Notifikationer', {
-        body: 'Du vil nu modtage vigtige opdateringer og stop-loss advarsler her!',
-        icon: '/logo.png'
-      })
-      
       try {
         const registration = await navigator.serviceWorker?.ready
         if (registration && 'pushManager' in registration) {
@@ -127,31 +118,7 @@ export default function Home() {
             })
           }
         }
-      } catch (e) {
-        console.log('Lokal tilladelse givet')
-      }
-    } else {
-      alert('Tilladelse til notifikationer blev afvist.')
-    }
-  }
-
-  // Udløs test-notifikation med det samme
-  const sendTestNotification = () => {
-    if (Notification.permission === 'granted') {
-      navigator.serviceWorker.ready.then(reg => {
-        reg.showNotification('🧪 Test fra AINVEST', {
-          body: 'Perfekt! Notifikationer virker som de skal på din telefon.',
-          icon: '/logo.png'
-        })
-      }).catch(() => {
-        // Fallback hvis service worker ikke er klar
-        new Notification('🧪 Test fra AINVEST', {
-          body: 'Perfekt! Notifikationer virker som de skal på din telefon.',
-          icon: '/logo.png'
-        })
-      })
-    } else {
-      alert('Du skal først aktivere notifikationer ved at trykke på knappen ovenfor.')
+      } catch (e) {}
     }
   }
 
@@ -167,7 +134,6 @@ export default function Home() {
         alert('Fejl under analyse: ' + (data.error || 'Ukendt fejl'))
       }
     } catch (err) {
-      console.error(err)
       alert('Der opstod en fejl.')
     } finally {
       setAnalyzing(false)
@@ -190,7 +156,6 @@ export default function Home() {
         alert('Fejl ved AI-screening: ' + (data.error || 'Ukendt fejl'))
       }
     } catch (err) {
-      console.error(err)
       alert('Der opstod en fejl.')
     } finally {
       setDiscovering(false)
@@ -222,7 +187,6 @@ export default function Home() {
         alert('Fejl ved tilføjelse: ' + (data.error || 'Ukendt fejl'))
       }
     } catch (err) {
-      console.error(err)
       alert('Der opstod en fejl.')
     } finally {
       setAdding(false)
@@ -249,7 +213,6 @@ export default function Home() {
         alert('Kunne ikke tyde teksten: ' + (data.error || 'Ukendt fejl'))
       }
     } catch (err) {
-      console.error(err)
       alert('Der opstod en fejl ved import.')
     } finally {
       setImporting(false)
@@ -270,7 +233,7 @@ export default function Home() {
 
   const handleCopyTicker = (symbol: string, name: string) => {
     navigator.clipboard.writeText(symbol).then(() => {
-      alert(`📋 Kopiér lykkedes!\n\nTicker "${symbol}" (${name}) er kopieret til udklipsholder.`);
+      alert(`📋 Ticker "${symbol}" (${name}) er kopieret til udklipsholder.`);
     });
   }
 
@@ -330,7 +293,7 @@ export default function Home() {
           </div>
         </header>
 
-        {/* MARKEDETS PULS OG NOTIFIKATIONS KNAPPER */}
+        {/* MARKEDETS PULS OG NOTIFIKATIONS KNAP */}
         <section className={`bg-gradient-to-r border rounded-2xl p-5 mb-6 shadow-xl flex flex-col gap-4 ${pulseColor}`}>
           <div className="flex items-start gap-3.5">
             <span className="text-2xl mt-0.5">{pulseIcon}</span>
@@ -354,35 +317,25 @@ export default function Home() {
 
           <div className="pt-3 border-t border-gray-800/60 flex justify-between items-center flex-wrap gap-3">
             <span className="text-xs text-gray-300">
-              {pushEnabled ? '🔔 Notifikationer er aktive på denne enhed.' : '🔕 Aktivér notifikationer for at modtage opdateringer.'}
+              {pushEnabled ? '🔔 Automatiske Stop-Loss advarsler er aktive.' : '🔕 Aktivér notifikationer for at modtage Stop-Loss alarmer.'}
             </span>
-            <div className="flex items-center gap-2 flex-wrap">
-              {!pushEnabled ? (
-                <button
-                  onClick={requestPushPermission}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-emerald-500 text-gray-950 hover:opacity-90 shadow-sm"
-                >
-                  🔔 Slå Til
-                </button>
-              ) : (
-                <button
-                  onClick={sendTestNotification}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition"
-                >
-                  🧪 Test Notifikation
-                </button>
-              )}
-            </div>
+            {!pushEnabled && (
+              <button
+                onClick={requestPushPermission}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-emerald-500 text-gray-950 hover:opacity-90 shadow-sm"
+              >
+                🔔 Slå Til
+              </button>
+            )}
           </div>
         </section>
 
         {/* PORTEFØLJE TAB VISNING */}
         {activeTab === 'PORTEFØLJE' ? (
           <div>
-            {/* Saxo Lyn-import boks */}
             <section className="bg-[#0b1326] border border-cyan-800/60 rounded-2xl p-6 mb-6 shadow-xl">
               <h2 className="text-lg font-semibold text-cyan-300 mb-1">📋 Saxo Lyn-Import</h2>
-              <p className="text-xs text-gray-400 mb-3">Kopiér blot din ordretekst fra Saxo og indsæt herunder:</p>
+              <p className="text-xs text-gray-400 mb-3">Kopiér din ordretekst fra Saxo og indsæt herunder:</p>
               <form onSubmit={handleSaxoImport} className="flex flex-col sm:flex-row gap-3">
                 <input 
                   type="text" 
@@ -402,12 +355,11 @@ export default function Home() {
               </form>
             </section>
 
-            {/* Oversigt over egne aktier */}
             <section>
               <h2 className="text-xl font-semibold text-gray-200 mb-4 tracking-wide">Dine Aktive Handler</h2>
               {portfolio.length === 0 ? (
                 <div className="bg-[#0b1326] border border-gray-800 rounded-2xl p-8 text-center text-gray-400">
-                  <p>Du har ikke tilføjet nogen aktier til din portefølje endnu.</p>
+                  <p>Du har ikke tilføjet nogen aktier endnu.</p>
                 </div>
               ) : (
                 <div className="grid gap-4">
@@ -461,7 +413,6 @@ export default function Home() {
           </div>
         ) : (
           <div>
-            {/* Positions-beregner */}
             <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-6 shadow-xl">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-3">
                 <div>
@@ -480,7 +431,6 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Tilføj ny aktie manuelt */}
             <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-8 shadow-xl">
               <h2 className="text-lg font-semibold text-gray-200 mb-3">
                 Tilføj manuelt til {activeTab === 'KORTSIGTET' ? 'Kortsigtet (Sving)' : 'Langsigtet'}
@@ -511,7 +461,6 @@ export default function Home() {
               </form>
             </section>
 
-            {/* Sektion med aktier */}
             <section>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-200 tracking-wide">
@@ -524,7 +473,7 @@ export default function Home() {
                 <div className="text-center py-12 text-gray-500 font-mono">Henter data...</div>
               ) : filteredStocks.length === 0 ? (
                 <div className="bg-[#0b1326] border border-gray-800 rounded-2xl p-8 text-center text-gray-400">
-                  <p>Ingen aktier i dette univers endnu. Klik på "Få AI Anbefalinger (Top 3)" ovenfor!</p>
+                  <p>Ingen aktier i dette univers endnu.</p>
                 </div>
               ) : (
                 <div className="grid gap-4">
@@ -606,7 +555,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* FAST BUNDMENU (MOBILE TAB BAR) */}
       <nav className="fixed bottom-0 left-0 right-0 bg-[#0b1326]/95 backdrop-blur-md border-t border-gray-800 py-3 px-6 z-50 shadow-2xl">
         <div className="max-w-md mx-auto flex justify-around items-center">
           <button 
