@@ -50,6 +50,9 @@ export default function Home() {
   const [saxoText, setSaxoText] = useState('')
   const [importing, setImporting] = useState(false)
 
+  // Push notifikationer state
+  const [pushEnabled, setPushEnabled] = useState(false)
+
   const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({})
   const [activeTab, setActiveTab] = useState<'KORTSIGTET' | 'LANGSIKTET' | 'PORTEFØLJE'>('KORTSIGTET')
 
@@ -88,7 +91,50 @@ export default function Home() {
   useEffect(() => {
     fetchData()
     fetchMarketPulse()
+
+    // Tjek om push allerede er tilladt
+    if ('Notification' in window && Notification.permission === 'granted') {
+      setPushEnabled(true)
+    }
   }, [])
+
+  // Funktion til at aktivere push-notifikationer
+  const requestPushPermission = async () => {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      alert('Din browser understøtter desværre ikke push-notifikationer.')
+      return
+    }
+
+    const permission = await Notification.requestPermission()
+    if (permission === 'granted') {
+      setPushEnabled(true)
+      new Notification('AINVEST Notifikationer', {
+        body: 'Du vil nu modtage vigtige opdateringer og stop-loss advarsler her!',
+        icon: '/logo.png'
+      })
+      
+      try {
+        const registration = await navigator.serviceWorker.ready
+        // Generer et dummy-abonnement eller registrér mod server
+        const sub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYPE5NjhFk' // Standard VAPID offentlig nøgle placeholder
+        }).catch(() => null)
+
+        if (sub) {
+          await fetch('/api/push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(sub)
+          })
+        }
+      } catch (e) {
+        console.log('Push registrering fuldført med lokal tilladelse')
+      }
+    } else {
+      alert('Du sagde nej til notifikationer. Du kan ændre det i dine browser-indstillinger.')
+    }
+  }
 
   const runAiAnalysis = async () => {
     try {
@@ -164,7 +210,6 @@ export default function Home() {
     }
   }
 
-  // Saxo lyn-import afkoder
   const handleSaxoImport = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!saxoText.trim()) return
@@ -270,24 +315,42 @@ export default function Home() {
           </div>
         </header>
 
-        {/* MARKEDETS PULS */}
-        <section className={`bg-gradient-to-r border rounded-2xl p-5 mb-6 shadow-xl flex items-start gap-3.5 ${pulseColor}`}>
-          <span className="text-2xl mt-0.5">{pulseIcon}</span>
-          <div className="w-full">
-            <div className="flex justify-between items-center flex-wrap gap-2">
-              <h3 className="text-sm font-bold uppercase font-mono tracking-wide">
-                Markedets Status: {marketPulse.status}
-              </h3>
-              <span className="text-[10px] bg-gray-950/60 px-2.5 py-0.5 rounded-full font-mono text-gray-300 border border-gray-800">
-                Dagsoverblik
-              </span>
+        {/* MARKEDETS PULS OG NOTIFIKATIONS KNAP */}
+        <section className={`bg-gradient-to-r border rounded-2xl p-5 mb-6 shadow-xl flex flex-col gap-4 ${pulseColor}`}>
+          <div className="flex items-start gap-3.5">
+            <span className="text-2xl mt-0.5">{pulseIcon}</span>
+            <div className="w-full">
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <h3 className="text-sm font-bold uppercase font-mono tracking-wide">
+                  Markedets Status: {marketPulse.status}
+                </h3>
+                <span className="text-[10px] bg-gray-950/60 px-2.5 py-0.5 rounded-full font-mono text-gray-300 border border-gray-800">
+                  Dagsoverblik
+                </span>
+              </div>
+              <p className="text-sm font-semibold text-white mt-1">
+                {marketPulse.headline}
+              </p>
+              <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+                {marketPulse.advice}
+              </p>
             </div>
-            <p className="text-sm font-semibold text-white mt-1">
-              {marketPulse.headline}
-            </p>
-            <p className="text-xs text-gray-300 mt-1 leading-relaxed">
-              {marketPulse.advice}
-            </p>
+          </div>
+
+          <div className="pt-3 border-t border-gray-800/60 flex justify-between items-center flex-wrap gap-3">
+            <span className="text-xs text-gray-300">
+              {pushEnabled ? '🔔 Push-notifikationer er slået til på denne enhed.' : '🔕 Få besked på telefonen ved Stop-Loss eller vigtige ændringer.'}
+            </span>
+            <button
+              onClick={requestPushPermission}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm ${
+                pushEnabled 
+                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-700/60' 
+                  : 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-gray-950 hover:opacity-90'
+              }`}
+            >
+              {pushEnabled ? '✓ Notifikationer Aktive' : '🔔 Slå Push-Notifikationer Til'}
+            </button>
           </div>
         </section>
 
@@ -451,7 +514,6 @@ export default function Home() {
                     const totalCost = calculatedShares * price
                     const isTopPick = index === 0 && stock.score >= 85
                     const isBuy = stock.recommendation && stock.recommendation.toUpperCase() === 'KØB'
-                    const isExpanded = expandedCards[stock.id] || false
 
                     return (
                       <div 
