@@ -80,8 +80,9 @@ export default function Home() {
       })
       const data = await res.json()
       if (data.success) {
-        await fetchStocks() // Sørg for at hente de nye aktier med det samme!
-        alert('🔍 AI har fundet og tilføjet en ny spændende aktie til overvågning!')
+        await fetchStocks()
+        setActiveTab('ALLE') // Skift automatisk til 'Alle' så man med garanti kan se den nye aktie!
+        alert('🔍 AI har fundet og tilføjet en ny aktie! Du er skiftet til "Alle"-oversigten.')
       } else {
         alert('Fejl ved AI-screening: ' + (data.error || 'Ukendt fejl'))
       }
@@ -116,6 +117,7 @@ export default function Home() {
         setNewSymbol('')
         setNewName('')
         await fetchStocks()
+        setActiveTab('ALLE')
         alert(`✅ Aktie ${newSymbol} tilføjet!`)
       } else {
         alert('Fejl ved tilføjelse: ' + (data.error || 'Ukendt fejl'))
@@ -186,7 +188,7 @@ export default function Home() {
               disabled={discovering}
               className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-bold px-3 py-2.5 rounded-xl text-xs tracking-wide transition shadow-lg disabled:opacity-50 cursor-pointer"
             >
-              {discovering ? '⏳ AI scanner markedet (vent venligst)...' : '🔍 Få AI Anbefaling'}
+              {discovering ? '⏳ AI scanner markedet...' : '🔍 Få AI Anbefaling'}
             </button>
             <button
               onClick={runAiAnalysis}
@@ -204,7 +206,7 @@ export default function Home() {
           <div>
             <h3 className="text-sm font-bold text-emerald-300 uppercase font-mono tracking-wide">Rådgiverens Bemærkning</h3>
             <p className="text-xs text-gray-300 mt-1 leading-relaxed">
-              Velkommen tilbage, Felix! Husk at tage det roligt, spred dine midler ud, og lad dig ikke rive med af kortfristede panik-svingninger. Tjek altid dit **Stop-Loss**, før du handler.
+              Velkommen tilbage, Felix! Total antal aktier i databasen: <strong className="text-white font-mono">{stocks.length}</strong> stk. Tjek altid dit **Stop-Loss**, før du handler.
             </p>
           </div>
         </section>
@@ -272,7 +274,7 @@ export default function Home() {
               {activeTab === 'KORTSIGTET' && '⚡ Korte Sving & Momentum'}
             </h2>
             <span className="text-xs font-mono text-gray-400">
-              {filteredStocks.length} stk. fundet
+              {filteredStocks.length} stk. fundet i denne visning
             </span>
           </div>
           
