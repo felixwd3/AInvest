@@ -18,7 +18,7 @@ interface Stock {
 }
 
 interface MarketPulse {
-  status: 'RISK-ON' | 'AFVENTENDE' | 'RISK-OFF'
+  status: 'ROLIGT' | 'USIKKERT' | 'UROLIGT'
   headline: string
   advice: string
 }
@@ -37,11 +37,10 @@ export default function Home() {
   const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({})
   const [activeTab, setActiveTab] = useState<'ALLE' | 'LANGSIKTET' | 'KORTSIGTET'>('KORTSIGTET')
 
-  // Markeds-puls state
   const [marketPulse, setMarketPulse] = useState<MarketPulse>({
-    status: 'RISK-ON',
-    headline: 'Analyserer markedsstemning...',
-    advice: 'Henter live data fra Gemini AI...'
+    status: 'ROLIGT',
+    headline: 'Tager temperaturen på markedet...',
+    advice: 'Vent et øjeblik mens AI'en tjekker stemningen.'
   })
 
   const fetchStocks = async () => {
@@ -186,15 +185,15 @@ export default function Home() {
     return tf === activeTab
   })
 
-  // Farve- og ikonvalg baseret på markeds-puls
+  // Bløde og ukomplicerede farver og ikoner
   const pulseColor = 
-    marketPulse.status === 'RISK-ON' ? 'border-emerald-500/50 from-emerald-950/50 to-cyan-950/50 text-emerald-400' :
-    marketPulse.status === 'RISK-OFF' ? 'border-rose-500/50 from-rose-950/50 to-amber-950/50 text-rose-400' :
+    marketPulse.status === 'ROLIGT' ? 'border-emerald-500/50 from-emerald-950/50 to-cyan-950/50 text-emerald-400' :
+    marketPulse.status === 'UROLIGT' ? 'border-rose-500/50 from-rose-950/50 to-amber-950/50 text-rose-400' :
     'border-amber-500/50 from-amber-950/50 to-yellow-950/50 text-amber-400'
 
   const pulseIcon = 
-    marketPulse.status === 'RISK-ON' ? '🟢' :
-    marketPulse.status === 'RISK-OFF' ? '🔴' : '🟡'
+    marketPulse.status === 'ROLIGT' ? '🟢' :
+    marketPulse.status === 'UROLIGT' ? '🔴' : '🟡'
 
   return (
     <main className="min-h-screen bg-[#070b14] text-white p-4 md:p-12 pb-28">
@@ -236,16 +235,16 @@ export default function Home() {
           </div>
         </header>
 
-        {/* MARKEDETS PULS (LIVE WIDGET) */}
+        {/* MARKEDETS PULS (JORDNÆR OG ENKEL WIDGET) */}
         <section className={`bg-gradient-to-r border rounded-2xl p-5 mb-6 shadow-xl flex items-start gap-3.5 ${pulseColor}`}>
           <span className="text-2xl mt-0.5">{pulseIcon}</span>
           <div className="w-full">
             <div className="flex justify-between items-center flex-wrap gap-2">
               <h3 className="text-sm font-bold uppercase font-mono tracking-wide">
-                Markedets Puls: {marketPulse.status}
+                Markedets Status: {marketPulse.status}
               </h3>
               <span className="text-[10px] bg-gray-950/60 px-2.5 py-0.5 rounded-full font-mono text-gray-300 border border-gray-800">
-                Live AI Scanner
+                Rådgiverens Dagsoverblik
               </span>
             </div>
             <p className="text-sm font-semibold text-white mt-1">

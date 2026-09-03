@@ -43,14 +43,15 @@ export async function POST(request: Request) {
       // Ingen JSON body
     }
 
-    // NY FUNKTION: Hent Markeds-puls (Market Pulse)
+    // MARKEDETS PULS (HELT ENKELT OG PÆDAGOGISK SPROG)
     if (body && body.action === 'pulse') {
-      const prompt = `Analyser den overordnede globale markedsstemning for aktiemarkedet lige nu (f.eks. tech, risiko, volatilitet) med fokus på kortsigtet sving-handel.
+      const prompt = `Analyser aktiemarkedet lige nu på en helt almindelig, jordnær måde uden finansjargon. 
+      Vælg en status: "ROLIGT", "USIKKERT" eller "UROLIGT".
       Svar KUN i gyldigt JSON-format med følgende felter:
       {
-        "status": enten "RISK-ON", "AFVENTENDE" eller "RISK-OFF",
-        "headline": "En skarp overskrift på dansk (f.eks. Stærkt momentum i tech)",
-        "advice": "Kort vejledning på dansk til traderen (maks 2 sætninger om hvad man skal passe på eller udnytte)"
+        "status": enten "ROLIGT", "USIKKERT" eller "UROLIGT",
+        "headline": "En kort, mundret overskrift på dansk (f.eks. Markedet tager det stille og roligt)",
+        "advice": "Et helt enkelt og ærligt råd til en begynder på dansk (maks 2 enkle sætninger, ingen svære ord som makrotal eller volatilitet)"
       }`
 
       const textResponse = await generateWithFallback(ai, prompt)
@@ -67,13 +68,13 @@ export async function POST(request: Request) {
       const timeframe = body.timeframe || 'LANGSIKTET'
 
       const prompt = `Analyser aktien ${name} (${symbol}) med fokus på en **${timeframe}** horisont for en nybegynder. 
-      Giv en skarp finansiel vurdering på dansk. 
-      VIGTIGT: Felterne current_price, stop_loss og take_profit SKAL KUN VÆRE RENE TAL (f.eks. 415.5), uden valuta.
+      Skriv på helt almindeligt dansk uden svære finansord.
+      VIGTIGT: Felterne current_price, stop_loss og take_profit SKAL KUN VÆRE RENE TAL (f.eks. 415.5) uden valuta.
       Svar KUN i gyldigt JSON-format med følgende felter:
       {
         "score": et tal mellem 0 og 100,
         "recommendation": "KØB", "HOLD" eller "SÆLG",
-        "ai_reasoning": "Kort finansiel begrundelse på dansk (maks 2 sætninger)",
+        "ai_reasoning": "Kort og ligetil begrundelse på dansk (maks 2 sætninger)",
         "beginner_explanation": "En superlet og tryg forklaring på dansk for en nybegynder",
         "current_price": et rent tal,
         "stop_loss": et rent tal,
@@ -105,7 +106,7 @@ export async function POST(request: Request) {
     // AI OPdag FLERE ANBEFALINGER (TOP 3)
     if (body && body.action === 'discover') {
       const timeframe = body.timeframe || 'LANGSIKTET'
-      const prompt = `Foreslå 3 super aktuelle og stærke aktier lige nu til en ${timeframe} horisont for en nybegynder (med fokus på stærkt momentum til sving-handel). 
+      const prompt = `Foreslå 3 spændende aktier lige nu til en ${timeframe} horisont for en nybegynder på helt almindeligt dansk. 
       VIGTIGT: current_price, stop_loss og take_profit SKAL VÆRE RENE TAL uden valuta.
       Svar KUN i et gyldigt JSON-array med op til 3 objekter i følgende format:
       [
@@ -114,8 +115,8 @@ export async function POST(request: Request) {
           "name": "Virksomhedsnavn",
           "score": et tal mellem 75 og 98,
           "recommendation": "KØB",
-          "ai_reasoning": "Kort skarp begrundelse på hvorfor den er interessant lige nu",
-          "beginner_explanation": "Hvorfor er denne god for en nybegynder?",
+          "ai_reasoning": "Kort og ligetil begrundelse på dansk",
+          "beginner_explanation": "Hvorfor er denne god og tryg for en nybegynder?",
           "current_price": et rent tal,
           "stop_loss": et rent tal,
           "take_profit": et rent tal
@@ -156,7 +157,7 @@ export async function POST(request: Request) {
 
     const updatePromises = stocks.map(async (stock) => {
       const tf = stock.timeframe || 'LANGSIKTET'
-      const prompt = `Analyser aktien ${stock.name} (${stock.symbol}) med fokus på en **${tf}** horisont for en nybegynder. 
+      const prompt = `Analyser aktien ${stock.name} (${stock.symbol}) med fokus på en **${tf}** horisont for en nybegynder på let dansk. 
       VIGTIGT: current_price, stop_loss og take_profit SKAL VÆRE RENE TAL uden valuta.
       Svar KUN i gyldigt JSON-format med felterne: score, recommendation, ai_reasoning, beginner_explanation, current_price, stop_loss, take_profit.`
 
