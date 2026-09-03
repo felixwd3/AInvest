@@ -80,8 +80,8 @@ export default function Home() {
       })
       const data = await res.json()
       if (data.success) {
-        await fetchStocks()
-        alert('🔍 AI har fundet og tilføjet en ny spændende aktie!')
+        await fetchStocks() // Sørg for at hente de nye aktier med det samme!
+        alert('🔍 AI har fundet og tilføjet en ny spændende aktie til overvågning!')
       } else {
         alert('Fejl ved AI-screening: ' + (data.error || 'Ukendt fejl'))
       }
@@ -186,7 +186,7 @@ export default function Home() {
               disabled={discovering}
               className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-bold px-3 py-2.5 rounded-xl text-xs tracking-wide transition shadow-lg disabled:opacity-50 cursor-pointer"
             >
-              {discovering ? '🔍 AI scanner nyheder...' : '🔍 Få AI Anbefaling'}
+              {discovering ? '⏳ AI scanner markedet (vent venligst)...' : '🔍 Få AI Anbefaling'}
             </button>
             <button
               onClick={runAiAnalysis}
