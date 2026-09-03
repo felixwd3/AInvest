@@ -17,6 +17,12 @@ interface Stock {
   take_profit?: number | null
 }
 
+interface MarketPulse {
+  status: 'RISK-ON' | 'AFVENTENDE' | 'RISK-OFF'
+  headline: string
+  advice: string
+}
+
 export default function Home() {
   const [stocks, setStocks] = useState<Stock[]>([])
   const [loading, setLoading] = useState(true)
@@ -29,7 +35,14 @@ export default function Home() {
   const [adding, setAdding] = useState(false)
 
   const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({})
-  const [activeTab, setActiveTab] = useState<'ALLE' | 'LANGSIKTET' | 'KORTSIGTET'>('KORTSIGTET') // Start med kortsigtet som standard!
+  const [activeTab, setActiveTab] = useState<'ALLE' | 'LANGSIKTET' | 'KORTSIGTET'>('KORTSIGTET')
+
+  // Markeds-puls state
+  const [marketPulse, setMarketPulse] = useState<MarketPulse>({
+    status: 'RISK-ON',
+    headline: 'Analyserer markedsstemning...',
+    advice: 'Henter live data fra Gemini AI...'
+  })
 
   const fetchStocks = async () => {
     setLoading(true)
@@ -46,13 +59,31 @@ export default function Home() {
     setLoading(false)
   }
 
+  const fetchMarketPulse = async () => {
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'pulse' }),
+      })
+      const data = await res.json()
+      if (data.success && data.pulse) {
+        setMarketPulse(data.pulse)
+      }
+    } catch (err) {
+      console.error('Kunne ikke hente markeds-puls', err)
+    }
+  }
+
   useEffect(() => {
     fetchStocks()
+    fetchMarketPulse()
   }, [])
 
   const runAiAnalysis = async () => {
     try {
       setAnalyzing(true)
+      await fetchMarketPulse()
       const res = await fetch('/api/analyze', { method: 'POST' })
       const data = await res.json()
       if (data.success) {
@@ -155,6 +186,16 @@ export default function Home() {
     return tf === activeTab
   })
 
+  // Farve- og ikonvalg baseret på markeds-puls
+  const pulseColor = 
+    marketPulse.status === 'RISK-ON' ? 'border-emerald-500/50 from-emerald-950/50 to-cyan-950/50 text-emerald-400' :
+    marketPulse.status === 'RISK-OFF' ? 'border-rose-500/50 from-rose-950/50 to-amber-950/50 text-rose-400' :
+    'border-amber-500/50 from-amber-950/50 to-yellow-950/50 text-amber-400'
+
+  const pulseIcon = 
+    marketPulse.status === 'RISK-ON' ? '🟢' :
+    marketPulse.status === 'RISK-OFF' ? '🔴' : '🟡'
+
   return (
     <main className="min-h-screen bg-[#070b14] text-white p-4 md:p-12 pb-28">
       <div className="max-w-4xl mx-auto">
@@ -195,15 +236,23 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Rådgiverens Bemærkning med fokus på kortsigtet guidance */}
-        <section className="bg-gradient-to-r from-emerald-950/40 to-cyan-950/40 border border-emerald-800/40 rounded-2xl p-5 mb-6 shadow-lg flex items-start gap-3">
-          <span className="text-2xl">💡</span>
-          <div>
-            <h3 className="text-sm font-bold text-emerald-300 uppercase font-mono tracking-wide">Dagens Handels-Guidance</h3>
+        {/* MARKEDETS PULS (LIVE WIDGET) */}
+        <section className={`bg-gradient-to-r border rounded-2xl p-5 mb-6 shadow-xl flex items-start gap-3.5 ${pulseColor}`}>
+          <span className="text-2xl mt-0.5">{pulseIcon}</span>
+          <div className="w-full">
+            <div className="flex justify-between items-center flex-wrap gap-2">
+              <h3 className="text-sm font-bold uppercase font-mono tracking-wide">
+                Markedets Puls: {marketPulse.status}
+              </h3>
+              <span className="text-[10px] bg-gray-950/60 px-2.5 py-0.5 rounded-full font-mono text-gray-300 border border-gray-800">
+                Live AI Scanner
+              </span>
+            </div>
+            <p className="text-sm font-semibold text-white mt-1">
+              {marketPulse.headline}
+            </p>
             <p className="text-xs text-gray-300 mt-1 leading-relaxed">
-              {activeTab === 'KORTSIGTET' 
-                ? '⚡ **Sving-fokus:** Se efter stærke momentum-signaler. Husk altid at indsætte dit Stop-Loss i Saxo med det samme efter køb, så risikoen er styret, før du læner dig tilbage!'
-                : '🛡️ **Langsigtet fokus:** Ro på bagsiden. Kig efter stabile ankre med høj score og spred dine indkøb over tid.'}
+              {marketPulse.advice}
             </p>
           </div>
         </section>
@@ -320,7 +369,6 @@ export default function Home() {
                           </span>
                         </div>
 
-                        {/* AI Begrundelse */}
                         <div>
                           <p className={`text-sm text-gray-400 max-w-xl transition-all ${!isExpanded ? 'line-clamp-1' : ''}`}>
                             {reasoningText}
@@ -341,14 +389,13 @@ export default function Home() {
                           </button>
                         </div>
 
-                        {/* Stop Loss & Take Profit (Tydelig guidance for sving-handel) */}
                         {(stock.stop_loss || stock.take_profit) && (
                           <div className="flex flex-wrap items-center gap-3 pt-2 text-xs font-mono">
                             <span className="text-rose-400 bg-rose-950/40 border border-rose-900/40 px-2.5 py-1.5 rounded-lg flex items-center gap-1">
-                              🛑 Stop-Loss (Sælg hvis den falder til): <strong>{stock.stop_loss}</strong>
+                              🛑 Stop-Loss: <strong>{stock.stop_loss}</strong>
                             </span>
                             <span className="text-emerald-400 bg-emerald-950/40 border border-emerald-900/40 px-2.5 py-1.5 rounded-lg flex items-center gap-1">
-                              🎯 Take-Profit (Høst gevinst ved): <strong>{stock.take_profit}</strong>
+                              🎯 Take-Profit: <strong>{stock.take_profit}</strong>
                             </span>
                           </div>
                         )}

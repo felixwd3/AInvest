@@ -43,6 +43,23 @@ export async function POST(request: Request) {
       // Ingen JSON body
     }
 
+    // NY FUNKTION: Hent Markeds-puls (Market Pulse)
+    if (body && body.action === 'pulse') {
+      const prompt = `Analyser den overordnede globale markedsstemning for aktiemarkedet lige nu (f.eks. tech, risiko, volatilitet) med fokus på kortsigtet sving-handel.
+      Svar KUN i gyldigt JSON-format med følgende felter:
+      {
+        "status": enten "RISK-ON", "AFVENTENDE" eller "RISK-OFF",
+        "headline": "En skarp overskrift på dansk (f.eks. Stærkt momentum i tech)",
+        "advice": "Kort vejledning på dansk til traderen (maks 2 sætninger om hvad man skal passe på eller udnytte)"
+      }`
+
+      const textResponse = await generateWithFallback(ai, prompt)
+      const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim()
+      const pulseData = JSON.parse(cleanJson)
+
+      return NextResponse.json({ success: true, pulse: pulseData })
+    }
+
     // TILFØJ SPECIFIK AKTIE
     if (body && body.action === 'add' && body.symbol) {
       const symbol = body.symbol.toUpperCase().trim()
@@ -51,7 +68,7 @@ export async function POST(request: Request) {
 
       const prompt = `Analyser aktien ${name} (${symbol}) med fokus på en **${timeframe}** horisont for en nybegynder. 
       Giv en skarp finansiel vurdering på dansk. 
-      VIGTIGT: Felterne current_price, stop_loss og take_profit SKAL KUN VÆRE RENE TAL (f.eks. 415.5), uden valuta (ingen USD, DKK etc.).
+      VIGTIGT: Felterne current_price, stop_loss og take_profit SKAL KUN VÆRE RENE TAL (f.eks. 415.5), uden valuta.
       Svar KUN i gyldigt JSON-format med følgende felter:
       {
         "score": et tal mellem 0 og 100,
@@ -85,10 +102,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: `Aktie ${symbol} tilføjet!` })
     }
 
-    // AI OPdag FLERE ANBEFALINGER (SCANNER FLERE NYE AKTIER PÅ ÉN GANG)
+    // AI OPdag FLERE ANBEFALINGER (TOP 3)
     if (body && body.action === 'discover') {
       const timeframe = body.timeframe || 'LANGSIKTET'
-      const prompt = `Foreslå 3 super aktuelle og stærke aktier lige nu til en ${timeframe} horisont for en nybegynder (især med fokus på momentum og kortere sving hvis det er kortsigtet). 
+      const prompt = `Foreslå 3 super aktuelle og stærke aktier lige nu til en ${timeframe} horisont for en nybegynder (med fokus på stærkt momentum til sving-handel). 
       VIGTIGT: current_price, stop_loss og take_profit SKAL VÆRE RENE TAL uden valuta.
       Svar KUN i et gyldigt JSON-array med op til 3 objekter i følgende format:
       [
