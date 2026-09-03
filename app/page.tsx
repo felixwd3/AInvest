@@ -29,7 +29,7 @@ export default function Home() {
   const [adding, setAdding] = useState(false)
 
   const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({})
-  const [activeTab, setActiveTab] = useState<'ALLE' | 'LANGSIKTET' | 'KORTSIGTET'>('ALLE')
+  const [activeTab, setActiveTab] = useState<'ALLE' | 'LANGSIKTET' | 'KORTSIGTET'>('KORTSIGTET') // Start med kortsigtet som standard!
 
   const fetchStocks = async () => {
     setLoading(true)
@@ -57,13 +57,12 @@ export default function Home() {
       const data = await res.json()
       if (data.success) {
         await fetchStocks()
-        alert('✨ Kurser og analyser er opdateret!')
       } else {
-        alert('Fejl under opdatering: ' + (data.error || 'Ukendt fejl'))
+        alert('Fejl under analyse: ' + (data.error || 'Ukendt fejl'))
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err)
-      alert('Der opstod en netværksfejl under opdatering.')
+      alert('Der opstod en fejl.')
     } finally {
       setAnalyzing(false)
     }
@@ -72,7 +71,7 @@ export default function Home() {
   const discoverNewStock = async () => {
     try {
       setDiscovering(true)
-      const targetTimeframe = activeTab === 'KORTSIGTET' ? 'KORTSIGTET' : 'LANGSIKTET'
+      const targetTimeframe = activeTab === 'ALLE' ? 'KORTSIGTET' : activeTab
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -81,14 +80,12 @@ export default function Home() {
       const data = await res.json()
       if (data.success) {
         await fetchStocks()
-        setActiveTab('ALLE') // Skift automatisk til 'Alle' så man med garanti kan se den nye aktie!
-        alert('🔍 AI har fundet og tilføjet en ny aktie! Du er skiftet til "Alle"-oversigten.')
       } else {
         alert('Fejl ved AI-screening: ' + (data.error || 'Ukendt fejl'))
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err)
-      alert('Der opstod en netværksfejl ved AI-screening.')
+      alert('Der opstod en fejl.')
     } finally {
       setDiscovering(false)
     }
@@ -98,7 +95,7 @@ export default function Home() {
     e.preventDefault()
     if (!newSymbol) return
 
-    const targetTimeframe = activeTab === 'KORTSIGTET' ? 'KORTSIGTET' : 'LANGSIKTET'
+    const targetTimeframe = activeTab === 'ALLE' ? 'KORTSIGTET' : activeTab
 
     try {
       setAdding(true)
@@ -117,14 +114,12 @@ export default function Home() {
         setNewSymbol('')
         setNewName('')
         await fetchStocks()
-        setActiveTab('ALLE')
-        alert(`✅ Aktie ${newSymbol} tilføjet!`)
       } else {
         alert('Fejl ved tilføjelse: ' + (data.error || 'Ukendt fejl'))
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err)
-      alert('Der opstod en netværksfejl.')
+      alert('Der opstod en fejl.')
     } finally {
       setAdding(false)
     }
@@ -177,7 +172,7 @@ export default function Home() {
                 AINVEST
               </h1>
               <p className="text-xs tracking-wider text-gray-400 uppercase font-mono mt-0.5">
-                {activeTab === 'KORTSIGTET' ? '⚡ Sving & Daytrade Univers' : activeTab === 'LANGSIKTET' ? '🛡️ Langsigtet Univers' : 'Din Personlige AI Aktierådgiver'}
+                {activeTab === 'KORTSIGTET' ? '⚡ Sving & Daytrade Rådgiver' : activeTab === 'LANGSIKTET' ? '🛡️ Langsigtet Rådgiver' : 'Din Personlige AI Aktierådgiver'}
               </p>
             </div>
           </div>
@@ -186,27 +181,29 @@ export default function Home() {
             <button
               onClick={discoverNewStock}
               disabled={discovering}
-              className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-bold px-3 py-2.5 rounded-xl text-xs tracking-wide transition shadow-lg disabled:opacity-50 cursor-pointer"
+              className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-bold px-3 py-2.5 rounded-xl text-xs tracking-wide transition shadow-lg disabled:opacity-50"
             >
-              {discovering ? '⏳ AI scanner markedet...' : '🔍 Få AI Anbefaling'}
+              {discovering ? 'AI scanner flere...' : '🔍 Få AI Anbefalinger (Top 3)'}
             </button>
             <button
               onClick={runAiAnalysis}
               disabled={analyzing}
-              className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-gray-950 font-bold px-3 py-2.5 rounded-xl text-xs tracking-wide transition shadow-lg disabled:opacity-50 cursor-pointer"
+              className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-gray-950 font-bold px-3 py-2.5 rounded-xl text-xs tracking-wide transition shadow-lg disabled:opacity-50"
             >
-              {analyzing ? '⏳ Opdaterer...' : '✨ Opdater Kurser'}
+              {analyzing ? 'Opdaterer...' : '✨ Opdater Kurser'}
             </button>
           </div>
         </header>
 
-        {/* Rådgiver boks */}
+        {/* Rådgiverens Bemærkning med fokus på kortsigtet guidance */}
         <section className="bg-gradient-to-r from-emerald-950/40 to-cyan-950/40 border border-emerald-800/40 rounded-2xl p-5 mb-6 shadow-lg flex items-start gap-3">
           <span className="text-2xl">💡</span>
           <div>
-            <h3 className="text-sm font-bold text-emerald-300 uppercase font-mono tracking-wide">Rådgiverens Bemærkning</h3>
+            <h3 className="text-sm font-bold text-emerald-300 uppercase font-mono tracking-wide">Dagens Handels-Guidance</h3>
             <p className="text-xs text-gray-300 mt-1 leading-relaxed">
-              Velkommen tilbage, Felix! Total antal aktier i databasen: <strong className="text-white font-mono">{stocks.length}</strong> stk. Tjek altid dit **Stop-Loss**, før du handler.
+              {activeTab === 'KORTSIGTET' 
+                ? '⚡ **Sving-fokus:** Se efter stærke momentum-signaler. Husk altid at indsætte dit Stop-Loss i Saxo med det samme efter køb, så risikoen er styret, før du læner dig tilbage!'
+                : '🛡️ **Langsigtet fokus:** Ro på bagsiden. Kig efter stabile ankre med høj score og spred dine indkøb over tid.'}
             </p>
           </div>
         </section>
@@ -219,14 +216,14 @@ export default function Home() {
           <form onSubmit={handleAddStock} className="flex flex-col sm:flex-row gap-3">
             <input 
               type="text" 
-              placeholder="Virksomhedsnavn (f.eks. Apple)" 
+              placeholder="Virksomhedsnavn (f.eks. Tesla)" 
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white flex-1 text-sm focus:outline-none focus:border-emerald-500"
             />
             <input 
               type="text" 
-              placeholder="Ticker (f.eks. AAPL)" 
+              placeholder="Ticker (f.eks. TSLA)" 
               value={newSymbol}
               onChange={(e) => setNewSymbol(e.target.value)}
               className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white sm:w-40 text-sm font-mono uppercase focus:outline-none focus:border-emerald-500"
@@ -235,13 +232,13 @@ export default function Home() {
             <button 
               type="submit"
               disabled={adding}
-              className={`font-medium px-5 py-2 rounded-xl text-sm transition disabled:opacity-50 cursor-pointer ${
+              className={`font-medium px-5 py-2 rounded-xl text-sm transition disabled:opacity-50 ${
                 activeTab === 'KORTSIGTET' 
                   ? 'bg-cyan-600 hover:bg-cyan-500 text-gray-950 font-bold' 
                   : 'bg-emerald-600 hover:bg-emerald-500 text-gray-950 font-bold'
               }`}
             >
-              {adding ? '⏳ Analyserer...' : '+ Tilføj Aktie'}
+              {adding ? 'Analyserer...' : '+ Tilføj Aktie'}
             </button>
           </form>
         </section>
@@ -274,7 +271,7 @@ export default function Home() {
               {activeTab === 'KORTSIGTET' && '⚡ Korte Sving & Momentum'}
             </h2>
             <span className="text-xs font-mono text-gray-400">
-              {filteredStocks.length} stk. fundet i denne visning
+              {filteredStocks.length} stk. fundet
             </span>
           </div>
           
@@ -282,7 +279,7 @@ export default function Home() {
             <div className="text-center py-12 text-gray-500 font-mono">Henter data...</div>
           ) : filteredStocks.length === 0 ? (
             <div className="bg-[#0b1326] border border-gray-800 rounded-2xl p-8 text-center text-gray-400">
-              <p>Ingen aktier i dette univers endnu. Tilføj en ovenfor eller klik på "Få AI Anbefaling"!</p>
+              <p>Ingen aktier i dette univers endnu. Klik på "Få AI Anbefalinger (Top 3)" ovenfor!</p>
             </div>
           ) : (
             <div className="grid gap-4">
@@ -294,6 +291,7 @@ export default function Home() {
                 const isExpanded = expandedCards[stock.id] || false
                 const reasoningText = stock.ai_reasoning || "Ingen analyse endnu."
                 const beginnerText = stock.beginner_explanation || "Ingen begynderforklaring tilgængelig endnu."
+                const isBuy = stock.recommendation && stock.recommendation.toUpperCase() === 'KØB'
 
                 return (
                   <div 
@@ -302,7 +300,7 @@ export default function Home() {
                   >
                     <button 
                       onClick={() => deleteStock(stock.id, stock.symbol)}
-                      className="absolute top-4 right-4 text-gray-600 hover:text-rose-400 transition z-10 cursor-pointer"
+                      className="absolute top-4 right-4 text-gray-600 hover:text-rose-400 transition z-10"
                       title="Fjern fra overvågning"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -322,6 +320,7 @@ export default function Home() {
                           </span>
                         </div>
 
+                        {/* AI Begrundelse */}
                         <div>
                           <p className={`text-sm text-gray-400 max-w-xl transition-all ${!isExpanded ? 'line-clamp-1' : ''}`}>
                             {reasoningText}
@@ -329,26 +328,27 @@ export default function Home() {
                           
                           {isExpanded && (
                             <div className="mt-2.5 p-3 bg-emerald-950/30 border border-emerald-900/40 rounded-xl text-xs text-emerald-200/90 leading-relaxed font-sans">
-                              <strong className="text-emerald-400 block mb-1">🎓 Begynder-forklaring:</strong>
+                              <strong className="text-emerald-400 block mb-1">🎓 Sådan forstår du handlen:</strong>
                               {beginnerText}
                             </div>
                           )}
 
                           <button 
                             onClick={() => toggleExpand(stock.id)}
-                            className="text-xs text-emerald-400 hover:text-emerald-300 font-medium mt-1 inline-flex items-center gap-1 focus:outline-none cursor-pointer"
+                            className="text-xs text-emerald-400 hover:text-emerald-300 font-medium mt-1 inline-flex items-center gap-1 focus:outline-none"
                           >
-                            {isExpanded ? '▲ Vis mindre' : '▼ Vis mere & Begynder-guide'}
+                            {isExpanded ? '▲ Vis mindre' : '▼ Vis mere om handel & strategi'}
                           </button>
                         </div>
 
+                        {/* Stop Loss & Take Profit (Tydelig guidance for sving-handel) */}
                         {(stock.stop_loss || stock.take_profit) && (
-                          <div className="flex items-center gap-4 pt-1 text-xs font-mono">
-                            <span className="text-rose-400 bg-rose-950/40 border border-rose-900/40 px-2.5 py-1 rounded-lg">
-                              🛑 Stop-Loss: <strong>{stock.stop_loss}</strong>
+                          <div className="flex flex-wrap items-center gap-3 pt-2 text-xs font-mono">
+                            <span className="text-rose-400 bg-rose-950/40 border border-rose-900/40 px-2.5 py-1.5 rounded-lg flex items-center gap-1">
+                              🛑 Stop-Loss (Sælg hvis den falder til): <strong>{stock.stop_loss}</strong>
                             </span>
-                            <span className="text-emerald-400 bg-emerald-950/40 border border-emerald-900/40 px-2.5 py-1 rounded-lg">
-                              🎯 Take-Profit: <strong>{stock.take_profit}</strong>
+                            <span className="text-emerald-400 bg-emerald-950/40 border border-emerald-900/40 px-2.5 py-1.5 rounded-lg flex items-center gap-1">
+                              🎯 Take-Profit (Høst gevinst ved): <strong>{stock.take_profit}</strong>
                             </span>
                           </div>
                         )}
@@ -363,7 +363,7 @@ export default function Home() {
                         <div className="text-right">
                           <div className="text-xs uppercase tracking-wider text-gray-400">Signal</div>
                           <span className={`inline-block px-3 py-1 rounded-lg text-xs font-bold font-mono tracking-wider ${
-                            stock.recommendation === 'KØB' ? 'bg-emerald-950 text-emerald-300 border border-emerald-700/60 shadow-sm' :
+                            isBuy ? 'bg-emerald-950 text-emerald-300 border border-emerald-700/60 shadow-sm' :
                             stock.recommendation === 'SÆLG' ? 'bg-rose-950 text-rose-300 border border-rose-700/60 shadow-sm' :
                             'bg-amber-950 text-amber-300 border border-amber-700/60 shadow-sm'
                           }`}>
@@ -375,13 +375,13 @@ export default function Home() {
 
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center pt-3 border-t border-gray-800/50 gap-3">
                       <div>
-                        {price > 0 && stock.recommendation === 'KØB' ? (
+                        {price > 0 && isBuy ? (
                           <span className="text-xs text-emerald-400/90 font-mono">
-                            Anbefalet køb: <strong className="text-white font-bold">{calculatedShares} stk.</strong> (ca. {totalCost.toLocaleString('da-DK')} DKK)
+                            Købs-guidance: <strong className="text-white font-bold">{calculatedShares} stk.</strong> (ca. {totalCost.toLocaleString('da-DK')} DKK v/ kurs {price})
                           </span>
                         ) : (
                           <span className="text-xs text-gray-500 font-mono">
-                            {price > 0 ? `Aktuel pris: ${price} - Ingen købsanbefaling` : 'Ingen prisdata tilgængelig'}
+                            {price > 0 ? `Aktuel kurs: ${price} - Afvent bedre moment` : 'Ingen prisdata tilgængelig'}
                           </span>
                         )}
                       </div>

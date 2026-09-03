@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { GoogleGenAI } from '@google/genai'
 
-// Hjælpefunktion til at rense priser, så de kun indeholder tal (fjerner "USD", "DKK", etc.)
 function parseNumeric(val: any): number | null {
   if (val === null || val === undefined) return null
   if (typeof val === 'number') return val
@@ -81,38 +80,53 @@ export async function POST(request: Request) {
         take_profit: parseNumeric(analysis.take_profit),
       })
 
-      if (insertError) throw new Error('Database fejl ved oprettelse: ' + insertError.message)
+      if (insertError) throw new Error('Database fejl: ' + insertError.message)
 
       return NextResponse.json({ success: true, message: `Aktie ${symbol} tilføjet!` })
     }
 
-    // AI DISCOVER NYHED / ANBEFALING
+    // AI OPdag FLERE ANBEFALINGER (SCANNER FLERE NYE AKTIER PÅ ÉN GANG)
     if (body && body.action === 'discover') {
       const timeframe = body.timeframe || 'LANGSIKTET'
-      const prompt = `Foreslå 1 aktie der er spændende lige nu til en ${timeframe} horisont for en nybegynder. 
+      const prompt = `Foreslå 3 super aktuelle og stærke aktier lige nu til en ${timeframe} horisont for en nybegynder (især med fokus på momentum og kortere sving hvis det er kortsigtet). 
       VIGTIGT: current_price, stop_loss og take_profit SKAL VÆRE RENE TAL uden valuta.
-      Svar KUN i gyldigt JSON-format med felterne: symbol, name, score, recommendation, ai_reasoning, beginner_explanation, current_price, stop_loss, take_profit.`
+      Svar KUN i et gyldigt JSON-array med op til 3 objekter i følgende format:
+      [
+        {
+          "symbol": "TICKER",
+          "name": "Virksomhedsnavn",
+          "score": et tal mellem 75 og 98,
+          "recommendation": "KØB",
+          "ai_reasoning": "Kort skarp begrundelse på hvorfor den er interessant lige nu",
+          "beginner_explanation": "Hvorfor er denne god for en nybegynder?",
+          "current_price": et rent tal,
+          "stop_loss": et rent tal,
+          "take_profit": et rent tal
+        }
+      ]`
 
       const textResponse = await generateWithFallback(ai, prompt)
       const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim()
-      const suggestion = JSON.parse(cleanJson)
+      const suggestions = JSON.parse(cleanJson)
 
-      const { error: insertError } = await supabase.from('stocks').insert({
-        symbol: suggestion.symbol,
-        name: suggestion.name,
-        timeframe: timeframe,
-        score: Number(suggestion.score) || 75,
-        recommendation: suggestion.recommendation || 'KØB',
-        ai_reasoning: suggestion.ai_reasoning || '',
-        beginner_explanation: suggestion.beginner_explanation || '',
-        current_price: parseNumeric(suggestion.current_price),
-        stop_loss: parseNumeric(suggestion.stop_loss),
-        take_profit: parseNumeric(suggestion.take_profit),
-      })
+      if (Array.isArray(suggestions)) {
+        for (const suggestion of suggestions) {
+          await supabase.from('stocks').insert({
+            symbol: suggestion.symbol,
+            name: suggestion.name,
+            timeframe: timeframe,
+            score: Number(suggestion.score) || 75,
+            recommendation: suggestion.recommendation || 'KØB',
+            ai_reasoning: suggestion.ai_reasoning || '',
+            beginner_explanation: suggestion.beginner_explanation || '',
+            current_price: parseNumeric(suggestion.current_price),
+            stop_loss: parseNumeric(suggestion.stop_loss),
+            take_profit: parseNumeric(suggestion.take_profit),
+          })
+        }
+      }
 
-      if (insertError) throw new Error('Database fejl ved AI-anbefaling: ' + insertError.message)
-
-      return NextResponse.json({ success: true, message: `Fandt og tilføjede ${suggestion.name}!` })
+      return NextResponse.json({ success: true, message: `Fandt og tilføjede flere anbefalinger!` })
     }
 
     // LYNOPDATÉR ALLE AKTIER
