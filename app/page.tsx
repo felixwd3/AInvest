@@ -12,6 +12,7 @@ interface Stock {
   score: number
   recommendation: string
   ai_reasoning: string | null
+  beginner_explanation?: string | null
   stop_loss?: number | null
   take_profit?: number | null
 }
@@ -21,14 +22,13 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [budget, setBudget] = useState<number>(3000)
   const [analyzing, setAnalyzing] = useState(false)
+  const [discovering, setDiscovering] = useState(false)
 
   const [newSymbol, setNewSymbol] = useState('')
   const [newName, setNewName] = useState('')
   const [adding, setAdding] = useState(false)
 
   const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({})
-  
-  // Navigation: 'ALLE' | 'LANGSIKTET' | 'KORTSIGTET'
   const [activeTab, setActiveTab] = useState<'ALLE' | 'LANGSIKTET' | 'KORTSIGTET'>('ALLE')
 
   const fetchStocks = async () => {
@@ -62,9 +62,32 @@ export default function Home() {
       }
     } catch (err) {
       console.error(err)
-      alert('Der opstod en fejl under kommunikation med serveren.')
+      alert('Der opstod en fejl.')
     } finally {
       setAnalyzing(false)
+    }
+  }
+
+  const discoverNewStock = async () => {
+    try {
+      setDiscovering(true)
+      const targetTimeframe = activeTab === 'KORTSIGTET' ? 'KORTSIGTET' : 'LANGSIKTET'
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'discover', timeframe: targetTimeframe }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        await fetchStocks()
+      } else {
+        alert('Fejl ved AI-screening: ' + (data.error || 'Ukendt fejl'))
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Der opstod en fejl.')
+    } finally {
+      setDiscovering(false)
     }
   }
 
@@ -72,7 +95,6 @@ export default function Home() {
     e.preventDefault()
     if (!newSymbol) return
 
-    // Hvis man står i et specifikt univers i bunden, bruges det automatisk som standard, ellers Langsigtet
     const targetTimeframe = activeTab === 'KORTSIGTET' ? 'KORTSIGTET' : 'LANGSIKTET'
 
     try {
@@ -108,7 +130,6 @@ export default function Home() {
     if (!confirmDelete) return
 
     const { error } = await supabase.from('stocks').delete().eq('id', id)
-    
     if (error) {
       alert('Fejl ved sletning: ' + error.message)
     } else {
@@ -139,7 +160,7 @@ export default function Home() {
       <div className="max-w-4xl mx-auto">
         
         {/* Header */}
-        <header className="flex flex-col sm:flex-row justify-between items-center mb-8 border-b border-gray-800/80 pb-6 gap-4">
+        <header className="flex flex-col sm:flex-row justify-between items-center mb-6 border-b border-gray-800/80 pb-6 gap-4">
           <div className="flex items-center gap-4 text-center sm:text-left">
             <img 
               src="/logo.png" 
@@ -151,41 +172,56 @@ export default function Home() {
                 AINVEST
               </h1>
               <p className="text-xs tracking-wider text-gray-400 uppercase font-mono mt-0.5">
-                {activeTab === 'KORTSIGTET' ? '⚡ Sving & Daytrade Univers' : activeTab === 'LANGSIKTET' ? '🛡️ Langsigtet Univers' : 'AI-Driven Stock Analysis'}
+                {activeTab === 'KORTSIGTET' ? '⚡ Sving & Daytrade Univers' : activeTab === 'LANGSIKTET' ? '🛡️ Langsigtet Univers' : 'Din Personlige AI Aktierådgiver'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+            <button
+              onClick={discoverNewStock}
+              disabled={discovering}
+              className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-bold px-3 py-2.5 rounded-xl text-xs tracking-wide transition shadow-lg disabled:opacity-50"
+            >
+              {discovering ? 'AI scanner nyheder...' : '🔍 Få AI Anbefaling'}
+            </button>
             <button
               onClick={runAiAnalysis}
               disabled={analyzing}
-              className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-gray-950 font-bold px-4 py-2.5 rounded-xl text-xs tracking-wide transition shadow-lg disabled:opacity-50"
+              className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-gray-950 font-bold px-3 py-2.5 rounded-xl text-xs tracking-wide transition shadow-lg disabled:opacity-50"
             >
-              {analyzing ? 'Gemini analyserer...' : '✨ Kør AI Analyse'}
+              {analyzing ? 'Opdaterer...' : '✨ Opdater Kurser'}
             </button>
-            <span className="bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 text-xs px-3 py-2 rounded-full font-medium shadow-inner hidden sm:inline">
-              ● Live DB
-            </span>
           </div>
         </header>
+
+        {/* NY BEGYNDER-RÅDGIVER BOKS */}
+        <section className="bg-gradient-to-r from-emerald-950/40 to-cyan-950/40 border border-emerald-800/40 rounded-2xl p-5 mb-6 shadow-lg flex items-start gap-3">
+          <span className="text-2xl">💡</span>
+          <div>
+            <h3 className="text-sm font-bold text-emerald-300 uppercase font-mono tracking-wide">Rådgiverens Bemærkning</h3>
+            <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+              Velkommen tilbage, Felix! Husk at tage det roligt, spred dine midler ud, og lad dig ikke rive med af kortfristede panik-svingninger. Tjek altid dit **Stop-Loss**, før du handler.
+            </p>
+          </div>
+        </section>
 
         {/* Tilføj ny aktie formular */}
         <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-6 shadow-xl">
           <h2 className="text-lg font-semibold text-gray-200 mb-3">
-            Tilføj ny aktie til {activeTab === 'KORTSIGTET' ? 'Kortsigtet (Sving)' : 'Langsigtet'}
+            Tilføj manuelt til {activeTab === 'KORTSIGTET' ? 'Kortsigtet (Sving)' : activeTab === 'LANGSIKTET' ? 'Langsigtet' : 'overvågning'}
           </h2>
           <form onSubmit={handleAddStock} className="flex flex-col sm:flex-row gap-3">
             <input 
               type="text" 
-              placeholder="Virksomhedsnavn (f.eks. Tesla)" 
+              placeholder="Virksomhedsnavn (f.eks. Apple)" 
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white flex-1 text-sm focus:outline-none focus:border-emerald-500"
             />
             <input 
               type="text" 
-              placeholder="Ticker (f.eks. TSLA)" 
+              placeholder="Ticker (f.eks. AAPL)" 
               value={newSymbol}
               onChange={(e) => setNewSymbol(e.target.value)}
               className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white sm:w-40 text-sm font-mono uppercase focus:outline-none focus:border-emerald-500"
@@ -241,7 +277,7 @@ export default function Home() {
             <div className="text-center py-12 text-gray-500 font-mono">Henter data...</div>
           ) : filteredStocks.length === 0 ? (
             <div className="bg-[#0b1326] border border-gray-800 rounded-2xl p-8 text-center text-gray-400">
-              <p>Ingen aktier i dette univers endnu. Tilføj en ovenfor!</p>
+              <p>Ingen aktier i dette univers endnu. Tilføj en ovenfor eller klik på "Få AI Anbefaling"!</p>
             </div>
           ) : (
             <div className="grid gap-4">
@@ -252,6 +288,7 @@ export default function Home() {
                 const tf = stock.timeframe || 'LANGSIKTET'
                 const isExpanded = expandedCards[stock.id] || false
                 const reasoningText = stock.ai_reasoning || "Ingen analyse endnu."
+                const beginnerText = stock.beginner_explanation || "Ingen begynderforklaring tilgængelig endnu."
 
                 return (
                   <div 
@@ -269,7 +306,7 @@ export default function Home() {
                     </button>
 
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pr-10">
-                      <div className="space-y-1.5 w-full">
+                      <div className="space-y-2 w-full">
                         <div className="flex items-center gap-3 flex-wrap">
                           <h3 className="text-lg font-bold text-gray-100">{stock.name}</h3>
                           <span className="text-xs bg-gray-900 text-cyan-300 border border-cyan-900/40 px-2.5 py-0.5 rounded-md font-mono">{stock.symbol}</span>
@@ -280,23 +317,31 @@ export default function Home() {
                           </span>
                         </div>
 
+                        {/* AI Begrundelse */}
                         <div>
                           <p className={`text-sm text-gray-400 max-w-xl transition-all ${!isExpanded ? 'line-clamp-1' : ''}`}>
                             {reasoningText}
                           </p>
-                          {reasoningText.length > 60 && (
-                            <button 
-                              onClick={() => toggleExpand(stock.id)}
-                              className="text-xs text-emerald-400 hover:text-emerald-300 font-medium mt-1 inline-flex items-center gap-1 focus:outline-none"
-                            >
-                              {isExpanded ? '▲ Vis mindre' : '▼ Vis mere om AI-analyse'}
-                            </button>
+                          
+                          {/* Ekstra begynderforklaring, der foldes ud */}
+                          {isExpanded && (
+                            <div className="mt-2.5 p-3 bg-emerald-950/30 border border-emerald-900/40 rounded-xl text-xs text-emerald-200/90 leading-relaxed font-sans">
+                              <strong className="text-emerald-400 block mb-1">🎓 Begynder-forklaring:</strong>
+                              {beginnerText}
+                            </div>
                           )}
+
+                          <button 
+                            onClick={() => toggleExpand(stock.id)}
+                            className="text-xs text-emerald-400 hover:text-emerald-300 font-medium mt-1 inline-flex items-center gap-1 focus:outline-none"
+                          >
+                            {isExpanded ? '▲ Vis mindre' : '▼ Vis mere & Begynder-guide'}
+                          </button>
                         </div>
 
                         {/* Stop Loss & Take Profit */}
                         {(stock.stop_loss || stock.take_profit) && (
-                          <div className="flex items-center gap-4 pt-2 text-xs font-mono">
+                          <div className="flex items-center gap-4 pt-1 text-xs font-mono">
                             <span className="text-rose-400 bg-rose-950/40 border border-rose-900/40 px-2.5 py-1 rounded-lg">
                               🛑 Stop-Loss: <strong>{stock.stop_loss}</strong>
                             </span>
