@@ -92,16 +92,14 @@ export default function Home() {
     fetchData()
     fetchMarketPulse()
 
-    // Tjek om push allerede er tilladt
     if ('Notification' in window && Notification.permission === 'granted') {
       setPushEnabled(true)
     }
   }, [])
 
-  // Funktion til at aktivere push-notifikationer
   const requestPushPermission = async () => {
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-      alert('Din browser understøtter desværre ikke push-notifikationer.')
+    if (!('Notification' in window)) {
+      alert('Din enhed understøtter desværre ikke notifikationer.')
       return
     }
 
@@ -114,25 +112,46 @@ export default function Home() {
       })
       
       try {
-        const registration = await navigator.serviceWorker.ready
-        // Generer et dummy-abonnement eller registrér mod server
-        const sub = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYPE5NjhFk' // Standard VAPID offentlig nøgle placeholder
-        }).catch(() => null)
+        const registration = await navigator.serviceWorker?.ready
+        if (registration && 'pushManager' in registration) {
+          const sub = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYPE5NjhFk'
+          }).catch(() => null)
 
-        if (sub) {
-          await fetch('/api/push', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(sub)
-          })
+          if (sub) {
+            await fetch('/api/push', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(sub)
+            })
+          }
         }
       } catch (e) {
-        console.log('Push registrering fuldført med lokal tilladelse')
+        console.log('Lokal tilladelse givet')
       }
     } else {
-      alert('Du sagde nej til notifikationer. Du kan ændre det i dine browser-indstillinger.')
+      alert('Tilladelse til notifikationer blev afvist.')
+    }
+  }
+
+  // Udløs test-notifikation med det samme
+  const sendTestNotification = () => {
+    if (Notification.permission === 'granted') {
+      navigator.serviceWorker.ready.then(reg => {
+        reg.showNotification('🧪 Test fra AINVEST', {
+          body: 'Perfekt! Notifikationer virker som de skal på din telefon.',
+          icon: '/logo.png'
+        })
+      }).catch(() => {
+        // Fallback hvis service worker ikke er klar
+        new Notification('🧪 Test fra AINVEST', {
+          body: 'Perfekt! Notifikationer virker som de skal på din telefon.',
+          icon: '/logo.png'
+        })
+      })
+    } else {
+      alert('Du skal først aktivere notifikationer ved at trykke på knappen ovenfor.')
     }
   }
 
@@ -249,10 +268,6 @@ export default function Home() {
     setPortfolio(portfolio.filter(p => p.id !== id))
   }
 
-  const toggleExpand = (id: string) => {
-    setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }))
-  }
-
   const handleCopyTicker = (symbol: string, name: string) => {
     navigator.clipboard.writeText(symbol).then(() => {
       alert(`📋 Kopiér lykkedes!\n\nTicker "${symbol}" (${name}) er kopieret til udklipsholder.`);
@@ -315,7 +330,7 @@ export default function Home() {
           </div>
         </header>
 
-        {/* MARKEDETS PULS OG NOTIFIKATIONS KNAP */}
+        {/* MARKEDETS PULS OG NOTIFIKATIONS KNAPPER */}
         <section className={`bg-gradient-to-r border rounded-2xl p-5 mb-6 shadow-xl flex flex-col gap-4 ${pulseColor}`}>
           <div className="flex items-start gap-3.5">
             <span className="text-2xl mt-0.5">{pulseIcon}</span>
@@ -339,18 +354,25 @@ export default function Home() {
 
           <div className="pt-3 border-t border-gray-800/60 flex justify-between items-center flex-wrap gap-3">
             <span className="text-xs text-gray-300">
-              {pushEnabled ? '🔔 Push-notifikationer er slået til på denne enhed.' : '🔕 Få besked på telefonen ved Stop-Loss eller vigtige ændringer.'}
+              {pushEnabled ? '🔔 Notifikationer er aktive på denne enhed.' : '🔕 Aktivér notifikationer for at modtage opdateringer.'}
             </span>
-            <button
-              onClick={requestPushPermission}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm ${
-                pushEnabled 
-                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-700/60' 
-                  : 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-gray-950 hover:opacity-90'
-              }`}
-            >
-              {pushEnabled ? '✓ Notifikationer Aktive' : '🔔 Slå Push-Notifikationer Til'}
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {!pushEnabled ? (
+                <button
+                  onClick={requestPushPermission}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-emerald-500 text-gray-950 hover:opacity-90 shadow-sm"
+                >
+                  🔔 Slå Til
+                </button>
+              ) : (
+                <button
+                  onClick={sendTestNotification}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition"
+                >
+                  🧪 Test Notifikation
+                </button>
+              )}
+            </div>
           </div>
         </section>
 
@@ -360,7 +382,7 @@ export default function Home() {
             {/* Saxo Lyn-import boks */}
             <section className="bg-[#0b1326] border border-cyan-800/60 rounded-2xl p-6 mb-6 shadow-xl">
               <h2 className="text-lg font-semibold text-cyan-300 mb-1">📋 Saxo Lyn-Import</h2>
-              <p className="text-xs text-gray-400 mb-3">Kopiér blot din ordretekst fra Saxo (f.eks. "Køb 5 TSLA til 210.50") og indsæt herunder:</p>
+              <p className="text-xs text-gray-400 mb-3">Kopiér blot din ordretekst fra Saxo og indsæt herunder:</p>
               <form onSubmit={handleSaxoImport} className="flex flex-col sm:flex-row gap-3">
                 <input 
                   type="text" 
@@ -375,7 +397,7 @@ export default function Home() {
                   disabled={importing}
                   className="bg-cyan-600 hover:bg-cyan-500 text-gray-950 font-bold px-5 py-2 rounded-xl text-sm transition disabled:opacity-50"
                 >
-                  {importing ? 'Tyder tekst...' : '⚡ Tilføj til Portefølje'}
+                  {importing ? 'Tyder...' : '⚡ Tilføj'}
                 </button>
               </form>
             </section>
@@ -385,7 +407,7 @@ export default function Home() {
               <h2 className="text-xl font-semibold text-gray-200 mb-4 tracking-wide">Dine Aktive Handler</h2>
               {portfolio.length === 0 ? (
                 <div className="bg-[#0b1326] border border-gray-800 rounded-2xl p-8 text-center text-gray-400">
-                  <p>Du har ikke tilføjet nogen aktier til din portefølje endnu. Brug Saxo Lyn-importen ovenfor!</p>
+                  <p>Du har ikke tilføjet nogen aktier til din portefølje endnu.</p>
                 </div>
               ) : (
                 <div className="grid gap-4">
@@ -402,7 +424,6 @@ export default function Home() {
                         <button 
                           onClick={() => deletePortfolioItem(item.id, item.symbol)}
                           className="absolute top-4 right-4 text-gray-600 hover:text-rose-400 transition"
-                          title="Slet fra portefølje"
                         >
                           ✕
                         </button>
@@ -414,7 +435,7 @@ export default function Home() {
                               <span className="text-xs bg-gray-900 text-cyan-300 border border-cyan-900/40 px-2.5 py-0.5 rounded-md font-mono">{item.symbol}</span>
                             </div>
                             <p className="text-xs text-gray-400 mt-1">
-                              Antal: <strong className="text-white">{item.shares} stk.</strong> | Købskurs: <strong className="text-white">{item.purchase_price}</strong> | Aktuel kurs: <strong className="text-white">{curPrice}</strong>
+                              Antal: <strong className="text-white">{item.shares} stk.</strong> | Købskurs: <strong className="text-white">{item.purchase_price}</strong> | Aktuel: <strong className="text-white">{curPrice}</strong>
                             </p>
                           </div>
 
@@ -426,10 +447,9 @@ export default function Home() {
                           </div>
                         </div>
 
-                        {/* Stop-loss advarsel */}
                         {item.stop_loss && curPrice <= item.stop_loss && (
                           <div className="mt-3 p-3 bg-rose-950/50 border border-rose-900 rounded-xl text-xs text-rose-200 font-bold flex items-center gap-2">
-                            🚨 ADVARSEL: Dit Stop-Loss ({item.stop_loss}) er nået eller overskredet! Overvej at sælge nu.
+                            🚨 ADVARSEL: Dit Stop-Loss ({item.stop_loss}) er nået! Overvej at sælge nu.
                           </div>
                         )}
                       </div>
@@ -486,7 +506,7 @@ export default function Home() {
                   disabled={adding}
                   className="bg-emerald-600 hover:bg-emerald-500 text-gray-950 font-bold px-5 py-2 rounded-xl text-sm transition disabled:opacity-50"
                 >
-                  {adding ? 'Analyserer...' : '+ Tilføj Aktie'}
+                  {adding ? 'Analyserer...' : '+ Tilføj'}
                 </button>
               </form>
             </section>
