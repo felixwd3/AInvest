@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { GoogleGenAI } from '@google/genai'
 
-// Sikker fallback mellem stabile Gemini 3.x Flash modeller
 async function generateWithFallback(ai: GoogleGenAI, prompt: string) {
   try {
     const response = await ai.models.generateContent({
@@ -72,7 +71,10 @@ export async function POST(request: Request) {
         take_profit: analysis.take_profit,
       })
 
-      if (insertError) throw insertError
+      if (insertError) {
+        console.error('Supabase insert fejl:', insertError)
+        return NextResponse.json({ error: 'Database fejl: ' + insertError.message }, { status: 400 })
+      }
 
       return NextResponse.json({ success: true, message: `Aktie ${symbol} tilføjet!` })
     }
@@ -87,7 +89,7 @@ export async function POST(request: Request) {
       const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim()
       const suggestion = JSON.parse(cleanJson)
 
-      await supabase.from('stocks').insert({
+      const { error: discoverError } = await supabase.from('stocks').insert({
         symbol: suggestion.symbol,
         name: suggestion.name,
         timeframe: timeframe,
@@ -100,10 +102,15 @@ export async function POST(request: Request) {
         take_profit: suggestion.take_profit,
       })
 
+      if (discoverError) {
+        console.error('Supabase discover insert fejl:', discoverError)
+        return NextResponse.json({ error: 'Database fejl ved oprettelse: ' + discoverError.message }, { status: 400 })
+      }
+
       return NextResponse.json({ success: true, message: `Fandt og tilføjede ${suggestion.name}!` })
     }
 
-    // LYNOPDATÉR ALLE AKTIER MED PARALLEL KØRSEL OG FALLBACK
+    // LYNOPDATÉR ALLE AKTIER
     const { data: stocks, error: fetchError } = await supabase.from('stocks').select('*')
     if (fetchError) throw fetchError
 
