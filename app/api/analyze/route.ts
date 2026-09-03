@@ -43,15 +43,15 @@ export async function POST(request: Request) {
       // Ingen JSON body
     }
 
-    // MARKEDETS PULS (HELT ENKELT OG PÆDAGOGISK SPROG)
+    // MARKEDETS PULS
     if (body && body.action === 'pulse') {
       const prompt = `Analyser aktiemarkedet lige nu på en helt almindelig, jordnær måde uden finansjargon. 
       Vælg en status: "ROLIGT", "USIKKERT" eller "UROLIGT".
       Svar KUN i gyldigt JSON-format med følgende felter:
       {
         "status": enten "ROLIGT", "USIKKERT" eller "UROLIGT",
-        "headline": "En kort, mundret overskrift på dansk (f.eks. Markedet tager det stille og roligt)",
-        "advice": "Et helt enkelt og ærligt råd til en begynder på dansk (maks 2 enkle sætninger, ingen svære ord som makrotal eller volatilitet)"
+        "headline": "En kort, mundret overskrift på dansk",
+        "advice": "Et helt enkelt og ærligt råd til en begynder på dansk (maks 2 enkle sætninger)"
       }`
 
       const textResponse = await generateWithFallback(ai, prompt)
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
 
       const prompt = `Analyser aktien ${name} (${symbol}) med fokus på en **${timeframe}** horisont for en nybegynder. 
       Skriv på helt almindeligt dansk uden svære finansord.
-      VIGTIGT: Felterne current_price, stop_loss og take_profit SKAL KUN VÆRE RENE TAL (f.eks. 415.5) uden valuta.
+      VIGTIGT: Felterne current_price, stop_loss og take_profit SKAL KUN VÆRE RENE TAL uden valuta.
       Svar KUN i gyldigt JSON-format med følgende felter:
       {
         "score": et tal mellem 0 og 100,
@@ -78,7 +78,8 @@ export async function POST(request: Request) {
         "beginner_explanation": "En superlet og tryg forklaring på dansk for en nybegynder",
         "current_price": et rent tal,
         "stop_loss": et rent tal,
-        "take_profit": et rent tal
+        "take_profit": et rent tal,
+        "is_top_pick": false
       }`
 
       const textResponse = await generateWithFallback(ai, prompt)
@@ -103,10 +104,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: `Aktie ${symbol} tilføjet!` })
     }
 
-    // AI OPdag FLERE ANBEFALINGER (TOP 3)
+    // AI OPdag FLERE ANBEFALINGER (TOP 3 med 1 udpeget som Top Pick)
     if (body && body.action === 'discover') {
       const timeframe = body.timeframe || 'LANGSIKTET'
       const prompt = `Foreslå 3 spændende aktier lige nu til en ${timeframe} horisont for en nybegynder på helt almindeligt dansk. 
+      VIGTIGT: Udpeg ÉN af de 3 som den absolut sikreste og stærkeste kandidat til en nybegynder og sæt "is_top_pick": true på den (og false på de to andre).
       VIGTIGT: current_price, stop_loss og take_profit SKAL VÆRE RENE TAL uden valuta.
       Svar KUN i et gyldigt JSON-array med op til 3 objekter i følgende format:
       [
@@ -119,7 +121,8 @@ export async function POST(request: Request) {
           "beginner_explanation": "Hvorfor er denne god og tryg for en nybegynder?",
           "current_price": et rent tal,
           "stop_loss": et rent tal,
-          "take_profit": et rent tal
+          "take_profit": et rent tal,
+          "is_top_pick": true eller false
         }
       ]`
 
@@ -144,7 +147,7 @@ export async function POST(request: Request) {
         }
       }
 
-      return NextResponse.json({ success: true, message: `Fandt og tilføjede flere anbefalinger!` })
+      return NextResponse.json({ success: true, message: `Fandt og tilføjede anbefalinger!` })
     }
 
     // LYNOPDATÉR ALLE AKTIER

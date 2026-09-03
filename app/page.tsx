@@ -37,7 +37,7 @@ export default function Home() {
   const [expandedCards, setExpandedCards] = useState<{ [key: string]: boolean }>({})
   const [activeTab, setActiveTab] = useState<'ALLE' | 'LANGSIKTET' | 'KORTSIGTET'>('KORTSIGTET')
 
- const [marketPulse, setMarketPulse] = useState<MarketPulse>({
+  const [marketPulse, setMarketPulse] = useState<MarketPulse>({
     status: 'ROLIGT',
     headline: 'Tager temperaturen på markedet...',
     advice: "Vent et øjeblik mens AI'en tjekker stemningen."
@@ -185,7 +185,17 @@ export default function Home() {
     return tf === activeTab
   })
 
-  // Bløde og ukomplicerede farver og ikoner
+  // Pædagogisk råd om spredning baseret på budget
+  const getPortfolioAdvice = (budg: number) => {
+    if (budg < 2000) {
+      return "💡 Med et budget under 2.000 kr. er det klogest at satse på **én enkelt aktie ad gangen**, da gebyrer ellers kan æde for meget af afkastet."
+    } else if (budg <= 6000) {
+      return "💡 Med dit budget på " + budg.toLocaleString('da-DK') + " kr. anbefaler vi at **dele beløbet i 2** (f.eks. 2 forskellige aktier), så du spreder din risiko pænt."
+    } else {
+      return "💡 Med et større budget kan du med fordel **fordele pengene på 3 forskellige aktier** fra vores Top 3-liste for at beskytte dig mod uforudsete svingninger."
+    }
+  }
+
   const pulseColor = 
     marketPulse.status === 'ROLIGT' ? 'border-emerald-500/50 from-emerald-950/50 to-cyan-950/50 text-emerald-400' :
     marketPulse.status === 'UROLIGT' ? 'border-rose-500/50 from-rose-950/50 to-amber-950/50 text-rose-400' :
@@ -235,7 +245,7 @@ export default function Home() {
           </div>
         </header>
 
-        {/* MARKEDETS PULS (JORDNÆR OG ENKEL WIDGET) */}
+        {/* MARKEDETS PULS */}
         <section className={`bg-gradient-to-r border rounded-2xl p-5 mb-6 shadow-xl flex items-start gap-3.5 ${pulseColor}`}>
           <span className="text-2xl mt-0.5">{pulseIcon}</span>
           <div className="w-full">
@@ -256,8 +266,31 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Tilføj ny aktie formular */}
+        {/* Positions-beregner & Smart Fordeler */}
         <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-6 shadow-xl">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-3">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-200">Positions- & Kapitalberegner</h2>
+              <p className="text-sm text-gray-400">Indtast dit samlede beløb for at se, hvordan du bærer dig ad.</p>
+            </div>
+            <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start">
+              <span className="text-sm text-gray-400">Budget (DKK):</span>
+              <input 
+                type="number" 
+                value={budget} 
+                onChange={(e) => setBudget(Number(e.target.value))}
+                className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white w-36 font-mono text-right focus:outline-none focus:border-emerald-500 shadow-inner"
+              />
+            </div>
+          </div>
+          {/* Dynamisk råd om spredning */}
+          <div className="p-3 bg-cyan-950/30 border border-cyan-900/40 rounded-xl text-xs text-cyan-200 leading-relaxed font-sans">
+            {getPortfolioAdvice(budget)}
+          </div>
+        </section>
+
+        {/* Tilføj ny aktie formular */}
+        <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-8 shadow-xl">
           <h2 className="text-lg font-semibold text-gray-200 mb-3">
             Tilføj manuelt til {activeTab === 'KORTSIGTET' ? 'Kortsigtet (Sving)' : activeTab === 'LANGSIKTET' ? 'Langsigtet' : 'overvågning'}
           </h2>
@@ -291,25 +324,6 @@ export default function Home() {
           </form>
         </section>
 
-        {/* Positions-beregner */}
-        <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-8 shadow-xl">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-200">Positions-beregner</h2>
-              <p className="text-sm text-gray-400">Indtast dit samlede beløb for eksperiment-handlen.</p>
-            </div>
-            <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start">
-              <span className="text-sm text-gray-400">Budget (DKK):</span>
-              <input 
-                type="number" 
-                value={budget} 
-                onChange={(e) => setBudget(Number(e.target.value))}
-                className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white w-36 font-mono text-right focus:outline-none focus:border-emerald-500 shadow-inner"
-              />
-            </div>
-          </div>
-        </section>
-
         {/* Sektion med aktier */}
         <section>
           <div className="flex justify-between items-center mb-4">
@@ -331,21 +345,37 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid gap-4">
-              {filteredStocks.map((stock) => {
+              {filteredStocks.map((stock, index) => {
                 const price = stock.current_price || 0
-                const calculatedShares = price > 0 ? Math.floor(budget / price) : 0
+                // Hvis brugeren har delt budgettet op i 2, viser vi f.eks. hvad halvdelen rækker til
+                const splitFactor = budget > 5000 ? 3 : budget >= 2000 ? 2 : 1
+                const recommendedBudgetForThis = Math.round(budget / splitFactor)
+                const calculatedShares = price > 0 ? Math.floor(recommendedBudgetForThis / price) : 0
                 const totalCost = calculatedShares * price
+
                 const tf = stock.timeframe || 'LANGSIKTET'
                 const isExpanded = expandedCards[stock.id] || false
                 const reasoningText = stock.ai_reasoning || "Ingen analyse endnu."
                 const beginnerText = stock.beginner_explanation || "Ingen begynderforklaring tilgængelig endnu."
                 const isBuy = stock.recommendation && stock.recommendation.toUpperCase() === 'KØB'
+                
+                // Gør den øverste (første i listen med højest score) til dagens klogeste valg
+                const isTopPick = index === 0 && stock.score >= 85
 
                 return (
                   <div 
                     key={stock.id} 
-                    className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 flex flex-col gap-4 hover:border-gray-700 transition shadow-lg relative group"
+                    className={`bg-[#0b1326] border rounded-2xl p-6 flex flex-col gap-4 transition shadow-lg relative group ${
+                      isTopPick ? 'border-emerald-500/80 shadow-emerald-950/20 shadow-xl' : 'border-gray-800/80 hover:border-gray-700'
+                    }`}
                   >
+                    {/* DAGENS KLOGESTE VALG BADGE */}
+                    {isTopPick && (
+                      <div className="absolute -top-3 left-6 bg-gradient-to-r from-emerald-500 to-cyan-500 text-gray-950 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider font-mono shadow-md flex items-center gap-1">
+                        👑 Dagens Klogeste Valg
+                      </div>
+                    )}
+
                     <button 
                       onClick={() => deleteStock(stock.id, stock.symbol)}
                       className="absolute top-4 right-4 text-gray-600 hover:text-rose-400 transition z-10"
@@ -356,7 +386,7 @@ export default function Home() {
                       </svg>
                     </button>
 
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pr-10">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pr-10 pt-1">
                       <div className="space-y-2 w-full">
                         <div className="flex items-center gap-3 flex-wrap">
                           <h3 className="text-lg font-bold text-gray-100">{stock.name}</h3>
@@ -423,7 +453,7 @@ export default function Home() {
                       <div>
                         {price > 0 && isBuy ? (
                           <span className="text-xs text-emerald-400/90 font-mono">
-                            Købs-guidance: <strong className="text-white font-bold">{calculatedShares} stk.</strong> (ca. {totalCost.toLocaleString('da-DK')} DKK v/ kurs {price})
+                            Anbefalet køb for denne: <strong className="text-white font-bold">{calculatedShares} stk.</strong> (ca. {totalCost.toLocaleString('da-DK')} DKK v/ kurs {price})
                           </span>
                         ) : (
                           <span className="text-xs text-gray-500 font-mono">
