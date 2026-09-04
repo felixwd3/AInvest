@@ -24,8 +24,8 @@ interface PortfolioItem {
   shares: number
   purchase_price: number
   current_price: number | null
-  stop_loss?: number | null
-  take_profit?: number | null
+  stop_loss: number | null
+  take_profit: number | null
 }
 
 interface MarketPulse {
@@ -38,7 +38,7 @@ export default function Home() {
   const [stocks, setStocks] = useState<Stock[]>([])
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [budget, setBudget] = useState<number>(10000)
+  const [budget, setBudget] = useState<number>(3000)
   const [analyzing, setAnalyzing] = useState(false)
   const [discovering, setDiscovering] = useState(false)
 
@@ -94,7 +94,11 @@ export default function Home() {
   }, [])
 
   const requestPushPermission = async () => {
-    if (!('Notification' in window)) return
+    if (!('Notification' in window)) {
+      alert('Din enhed understøtter ikke notifikationer.')
+      return
+    }
+
     const permission = await Notification.requestPermission()
     if (permission === 'granted') {
       setPushEnabled(true)
@@ -238,110 +242,127 @@ export default function Home() {
     return tf === activeTab
   })
 
+  const pulseColor = 
+    marketPulse.status === 'ROLIGT' ? 'border-emerald-500/50 from-emerald-950/50 to-cyan-950/50 text-emerald-400' :
+    marketPulse.status === 'UROLIGT' ? 'border-rose-500/50 from-rose-950/50 to-amber-950/50 text-rose-400' :
+    'border-amber-500/50 from-amber-950/50 to-yellow-950/50 text-amber-400'
+
+  const pulseIcon = 
+    marketPulse.status === 'ROLIGT' ? '🟢' :
+    marketPulse.status === 'UROLIGT' ? '🔴' : '🟡'
+
   return (
-    <main className="min-h-screen lunar-glow text-slate-100 p-5 md:p-12 pb-32">
-      <div className="max-w-xl mx-auto">
+    <main className="min-h-screen bg-[#070b14] text-white p-4 md:p-12 pb-28">
+      <div className="max-w-4xl mx-auto">
         
-        {/* Minimalistisk Neo-bank Header */}
-        <header className="flex justify-between items-center mb-8 pt-2">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-center shadow-inner overflow-hidden p-1">
-              <img src="/logo.png" alt="AInvest" className="w-full h-full object-contain" />
-            </div>
+        {/* Header */}
+        <header className="flex flex-col sm:flex-row justify-between items-center mb-6 border-b border-gray-800/80 pb-6 gap-4">
+          <div className="flex items-center gap-4 text-center sm:text-left">
+            <img 
+              src="/logo.png" 
+              alt="AInvest Logo" 
+              className="w-20 h-20 md:w-24 md:h-24 object-contain" 
+            />
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
                 AINVEST
               </h1>
-              <p className="text-[11px] tracking-wider text-slate-400 uppercase font-medium">
-                {activeTab === 'PORTEFØLJE' ? 'Portefølje' : activeTab === 'KORTSIGTET' ? 'Sving & Momentum' : 'Langsigtet Anker'}
+              <p className="text-xs tracking-wider text-gray-400 uppercase font-mono mt-0.5">
+                {activeTab === 'PORTEFØLJE' ? '💼 Min Aktive Portefølje' : activeTab === 'KORTSIGTET' ? '⚡ Sving & Daytrade Rådgiver' : '🛡️ Langsigtet Rådgiver'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-center">
             {activeTab !== 'PORTEFØLJE' && (
               <button
                 onClick={discoverNewStock}
                 disabled={discovering}
-                className="bg-slate-900/90 hover:bg-slate-800 text-cyan-400 border border-slate-800 text-xs font-semibold px-3.5 py-2.5 rounded-2xl transition shadow-sm disabled:opacity-50"
+                className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-bold px-3 py-2.5 rounded-xl text-xs tracking-wide transition shadow-lg disabled:opacity-50"
               >
-                {discovering ? 'Scanner...' : '🔍 Top 3'}
+                {discovering ? 'AI scanner...' : '🔍 Få AI Anbefalinger (Top 3)'}
               </button>
             )}
             <button
               onClick={runAiAnalysis}
               disabled={analyzing}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-2xl transition shadow-md shadow-emerald-500/10 disabled:opacity-50"
+              className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-gray-950 font-bold px-3 py-2.5 rounded-xl text-xs tracking-wide transition shadow-lg disabled:opacity-50"
             >
-              {analyzing ? 'Opdaterer...' : '✨ Opdater'}
+              {analyzing ? 'Opdaterer...' : '✨ Opdater Kurser'}
             </button>
           </div>
         </header>
 
-        {/* MARKEDETS PULS KORT */}
-        <section className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 mb-6 shadow-2xl relative overflow-hidden">
-          <div className="flex items-start justify-between gap-4 mb-3">
-            <div>
-              <span className="text-[10px] uppercase font-mono tracking-widest text-emerald-400 bg-emerald-950/50 border border-emerald-900/40 px-2.5 py-1 rounded-full">
-                Markedsoverblik • {marketPulse.status}
-              </span>
-              <h2 className="text-base font-semibold text-white mt-2">
+        {/* MARKEDETS PULS OG NOTIFIKATIONS KNAP */}
+        <section className={`bg-gradient-to-r border rounded-2xl p-5 mb-6 shadow-xl flex flex-col gap-4 ${pulseColor}`}>
+          <div className="flex items-start gap-3.5">
+            <span className="text-2xl mt-0.5">{pulseIcon}</span>
+            <div className="w-full">
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <h3 className="text-sm font-bold uppercase font-mono tracking-wide">
+                  Markedets Status: {marketPulse.status}
+                </h3>
+                <span className="text-[10px] bg-gray-950/60 px-2.5 py-0.5 rounded-full font-mono text-gray-300 border border-gray-800">
+                  Dagsoverblik
+                </span>
+              </div>
+              <p className="text-sm font-semibold text-white mt-1">
                 {marketPulse.headline}
-              </h2>
+              </p>
+              <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+                {marketPulse.advice}
+              </p>
             </div>
           </div>
-          <p className="text-xs text-slate-300 leading-relaxed mb-4">
-            {marketPulse.advice}
-          </p>
 
-          <div className="pt-4 border-t border-slate-800/60 flex items-center justify-between">
-            <span className="text-xs text-slate-400">
-              {pushEnabled ? '🛡️ Stop-Loss overvågning aktiv' : '🔕 Slå notifikationer til for alarmer'}
+          <div className="pt-3 border-t border-gray-800/60 flex justify-between items-center flex-wrap gap-3">
+            <span className="text-xs text-gray-300">
+              {pushEnabled ? '🔔 Automatiske Stop-Loss advarsler er aktive.' : '🔕 Aktivér notifikationer for at modtage Stop-Loss alarmer.'}
             </span>
             {!pushEnabled && (
               <button
                 onClick={requestPushPermission}
-                className="text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-300 px-3 py-1.5 rounded-xl border border-slate-700/60 transition"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-emerald-500 text-gray-950 hover:opacity-90 shadow-sm"
               >
-                Slå til
+                🔔 Slå Til
               </button>
             )}
           </div>
         </section>
 
-        {/* INDHOLD FOR HVER TAB */}
+        {/* PORTEFØLJE TAB VISNING */}
         {activeTab === 'PORTEFØLJE' ? (
-          <div className="space-y-6">
-            <section className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 shadow-2xl">
-              <h2 className="text-sm font-bold text-cyan-300 uppercase tracking-wider mb-1">Saxo Lyn-Import</h2>
-              <p className="text-xs text-slate-400 mb-4">Indsæt ordretekst direkte fra Saxo:</p>
-              <form onSubmit={handleSaxoImport} className="flex flex-col gap-3">
+          <div>
+            <section className="bg-[#0b1326] border border-cyan-800/60 rounded-2xl p-6 mb-6 shadow-xl">
+              <h2 className="text-lg font-semibold text-cyan-300 mb-1">📋 Saxo Lyn-Import</h2>
+              <p className="text-xs text-gray-400 mb-3">Kopiér din ordretekst fra Saxo og indsæt herunder:</p>
+              <form onSubmit={handleSaxoImport} className="flex flex-col sm:flex-row gap-3">
                 <input 
                   type="text" 
-                  placeholder="F.eks. Købt 10 stk. Novo Nordisk til 450" 
+                  placeholder="F.eks. Købt 10 stk. AAPL til kurs 180" 
                   value={saxoText}
                   onChange={(e) => setSaxoText(e.target.value)}
-                  className="bg-slate-950/80 border border-slate-800 rounded-2xl px-4 py-3 text-white text-xs focus:outline-none focus:border-cyan-500 transition shadow-inner"
+                  className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white flex-1 text-sm focus:outline-none focus:border-cyan-500"
                   required
                 />
                 <button 
                   type="submit"
                   disabled={importing}
-                  className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 rounded-2xl text-xs transition shadow-md shadow-cyan-500/10 disabled:opacity-50"
+                  className="bg-cyan-600 hover:bg-cyan-500 text-gray-950 font-bold px-5 py-2 rounded-xl text-sm transition disabled:opacity-50"
                 >
-                  {importing ? 'Tyder ordre...' : '⚡ Tilføj til Portefølje'}
+                  {importing ? 'Tyder...' : '⚡ Tilføj'}
                 </button>
               </form>
             </section>
 
             <section>
-              <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3">Aktive Positioner</h2>
+              <h2 className="text-xl font-semibold text-gray-200 mb-4 tracking-wide">Dine Aktive Handler</h2>
               {portfolio.length === 0 ? (
-                <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-8 text-center text-slate-400 text-xs">
-                  Ingen aktive handler endnu. Brug lyn-importen ovenfor.
+                <div className="bg-[#0b1326] border border-gray-800 rounded-2xl p-8 text-center text-gray-400">
+                  <p>Du har ikke tilføjet nogen aktier endnu.</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="grid gap-4">
                   {portfolio.map((item) => {
                     const curPrice = item.current_price || item.purchase_price
                     const investedValue = item.shares * item.purchase_price
@@ -351,33 +372,36 @@ export default function Home() {
                     const isProfit = gainLoss >= 0
 
                     return (
-                      <div key={item.id} className="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-5 shadow-lg relative">
+                      <div key={item.id} className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 shadow-lg relative group">
                         <button 
                           onClick={() => deletePortfolioItem(item.id, item.symbol)}
-                          className="absolute top-5 right-5 text-slate-500 hover:text-rose-400 text-xs"
+                          className="absolute top-4 right-4 text-gray-600 hover:text-rose-400 transition"
                         >
                           ✕
                         </button>
-                        <div className="flex justify-between items-start mb-2 pr-6">
+
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pr-6">
                           <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-sm font-bold text-white">{item.name}</h3>
-                              <span className="text-[10px] bg-slate-950 text-cyan-300 px-2 py-0.5 rounded-lg font-mono border border-slate-800">{item.symbol}</span>
+                            <div className="flex items-center gap-3">
+                              <h3 className="text-lg font-bold text-gray-100">{item.name}</h3>
+                              <span className="text-xs bg-gray-900 text-cyan-300 border border-cyan-900/40 px-2.5 py-0.5 rounded-md font-mono">{item.symbol}</span>
                             </div>
-                            <p className="text-[11px] text-slate-400 mt-1">
-                              {item.shares} stk. à {item.purchase_price} DKK (Aktuel: {curPrice})
+                            <p className="text-xs text-gray-400 mt-1">
+                              Antal: <strong className="text-white">{item.shares} stk.</strong> | Købskurs: <strong className="text-white">{item.purchase_price}</strong> | Aktuel: <strong className="text-white">{curPrice}</strong>
                             </p>
                           </div>
+
                           <div className="text-right">
-                            <span className={`text-xs font-bold font-mono ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
-                              {isProfit ? '+' : ''}{gainLoss.toFixed(1)} DKK ({isProfit ? '+' : ''}{gainLossPct.toFixed(1)}%)
-                            </span>
+                            <div className="text-xs text-gray-400 uppercase font-mono">Gevinst / Tab</div>
+                            <div className={`text-lg font-extrabold font-mono ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {isProfit ? '+' : ''}{gainLoss.toFixed(2)} DKK ({isProfit ? '+' : ''}{gainLossPct.toFixed(1)}%)
+                            </div>
                           </div>
                         </div>
 
                         {item.stop_loss && curPrice <= item.stop_loss && (
-                          <div className="mt-3 p-3 bg-rose-950/40 border border-rose-900/60 rounded-2xl text-[11px] text-rose-200 font-semibold">
-                            🚨 Stop-Loss ({item.stop_loss}) er ramt! Overvej at eksekvere.
+                          <div className="mt-3 p-3 bg-rose-950/50 border border-rose-900 rounded-xl text-xs text-rose-200 font-bold flex items-center gap-2">
+                            🚨 ADVARSEL: Dit Stop-Loss ({item.stop_loss}) er nået! Overvej at sælge nu.
                           </div>
                         )}
                       </div>
@@ -388,159 +412,173 @@ export default function Home() {
             </section>
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* Budget & Beregner */}
-            <section className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-5 shadow-xl flex items-center justify-between gap-4">
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Tranche Budget</h3>
-                <p className="text-[11px] text-slate-400">Spreder risiko automatisk</p>
-              </div>
-              <div className="flex items-center gap-1 bg-slate-950/80 border border-slate-800 rounded-2xl px-3 py-1.5">
-                <input 
-                  type="number" 
-                  value={budget} 
-                  onChange={(e) => setBudget(Number(e.target.value))}
-                  className="bg-transparent text-right font-mono text-xs text-emerald-400 font-bold w-24 focus:outline-none"
-                />
-                <span className="text-xs text-slate-500">DKK</span>
+          <div>
+            <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-6 shadow-xl">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-200">Positions- & Kapitalberegner</h2>
+                  <p className="text-sm text-gray-400">Indtast dit samlede beløb.</p>
+                </div>
+                <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start">
+                  <span className="text-sm text-gray-400">Budget (DKK):</span>
+                  <input 
+                    type="number" 
+                    value={budget} 
+                    onChange={(e) => setBudget(Number(e.target.value))}
+                    className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white w-36 font-mono text-right focus:outline-none focus:border-emerald-500 shadow-inner"
+                  />
+                </div>
               </div>
             </section>
 
-            {/* Tilføj manuelt */}
-            <section className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-5 shadow-xl">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">Tilføj overvågning</h3>
-              <form onSubmit={handleAddStock} className="flex gap-2">
+            <section className="bg-[#0b1326] border border-gray-800/80 rounded-2xl p-6 mb-8 shadow-xl">
+              <h2 className="text-lg font-semibold text-gray-200 mb-3">
+                Tilføj manuelt til {activeTab === 'KORTSIGTET' ? 'Kortsigtet (Sving)' : 'Langsigtet'}
+              </h2>
+              <form onSubmit={handleAddStock} className="flex flex-col sm:flex-row gap-3">
                 <input 
                   type="text" 
-                  placeholder="Navn" 
+                  placeholder="Virksomhedsnavn" 
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="bg-slate-950/80 border border-slate-800 rounded-2xl px-3.5 py-2.5 text-xs text-white flex-1 focus:outline-none focus:border-emerald-500"
+                  className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white flex-1 text-sm focus:outline-none focus:border-emerald-500"
                 />
                 <input 
                   type="text" 
-                  placeholder="Ticker" 
+                  placeholder="Ticker (f.eks. TSLA)" 
                   value={newSymbol}
                   onChange={(e) => setNewSymbol(e.target.value)}
-                  className="bg-slate-950/80 border border-slate-800 rounded-2xl px-3 py-2.5 text-xs text-white w-24 font-mono uppercase focus:outline-none focus:border-emerald-500"
+                  className="bg-[#070b14] border border-gray-700 rounded-xl px-4 py-2 text-white sm:w-40 text-sm font-mono uppercase focus:outline-none focus:border-emerald-500"
                   required
                 />
                 <button 
                   type="submit"
                   disabled={adding}
-                  className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-2.5 rounded-2xl text-xs transition disabled:opacity-50"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-gray-950 font-bold px-5 py-2 rounded-xl text-sm transition disabled:opacity-50"
                 >
-                  +
+                  {adding ? 'Analyserer...' : '+ Tilføj'}
                 </button>
               </form>
             </section>
 
-            {/* Aktieliste */}
-            <section className="space-y-3">
+            <section>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-200 tracking-wide">
+                  {activeTab === 'KORTSIGTET' ? '⚡ Korte Sving & Momentum' : '🛡️ Langsigtede Ankre'}
+                </h2>
+                <span className="text-xs font-mono text-gray-400">{filteredStocks.length} stk. fundet</span>
+              </div>
+              
               {loading ? (
-                <div className="text-center py-12 text-slate-500 text-xs font-mono">Henter data...</div>
+                <div className="text-center py-12 text-gray-500 font-mono">Henter data...</div>
               ) : filteredStocks.length === 0 ? (
-                <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-8 text-center text-slate-400 text-xs">
-                  Ingen aktier fundet i denne kategori endnu. Klik på "Top 3".
+                <div className="bg-[#0b1326] border border-gray-800 rounded-2xl p-8 text-center text-gray-400">
+                  <p>Ingen aktier i dette univers endnu.</p>
                 </div>
               ) : (
-                filteredStocks.map((stock, index) => {
-                  const price = stock.current_price || 0
-                  const trancheBudget = budget / 2
-                  const calculatedShares = price > 0 ? Math.floor(trancheBudget / price) : 0
-                  const totalCost = calculatedShares * price
-                  const isTopPick = index === 0 && stock.score >= 85
+                <div className="grid gap-4">
+                  {filteredStocks.map((stock, index) => {
+                    const price = stock.current_price || 0
+                    const calculatedShares = price > 0 ? Math.floor(budget / 2 / price) : 0
+                    const totalCost = calculatedShares * price
+                    const isTopPick = index === 0 && stock.score >= 85
+                    const isBuy = stock.recommendation && stock.recommendation.toUpperCase() === 'KØB'
 
-                  return (
-                    <div 
-                      key={stock.id} 
-                      className={`bg-slate-900/60 backdrop-blur-xl border rounded-3xl p-5 shadow-xl relative transition ${
-                        isTopPick ? 'border-emerald-500/60 shadow-emerald-500/5' : 'border-slate-800/80'
-                      }`}
-                    >
-                      {isTopPick && (
-                        <div className="absolute -top-3 left-5 bg-emerald-500 text-slate-950 text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-widest shadow">
-                          Top Valg
-                        </div>
-                      )}
-
-                      <button 
-                        onClick={() => deleteStock(stock.id, stock.symbol)}
-                        className="absolute top-5 right-5 text-slate-600 hover:text-rose-400 text-xs"
+                    return (
+                      <div 
+                        key={stock.id} 
+                        className={`bg-[#0b1326] border rounded-2xl p-6 flex flex-col gap-4 transition shadow-lg relative group ${
+                          isTopPick ? 'border-emerald-500/80 shadow-xl' : 'border-gray-800/80 hover:border-gray-700'
+                        }`}
                       >
-                        ✕
-                      </button>
-
-                      <div className="flex justify-between items-start mb-2 pr-6 pt-1">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-bold text-white">{stock.name}</h3>
-                            <span className="text-[10px] bg-slate-950 text-cyan-300 px-2 py-0.5 rounded-lg font-mono border border-slate-800">{stock.symbol}</span>
+                        {isTopPick && (
+                          <div className="absolute -top-3 left-6 bg-gradient-to-r from-emerald-500 to-cyan-500 text-gray-950 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider font-mono shadow-md flex items-center gap-1">
+                            👑 Dagens Klogeste Valg
                           </div>
-                          <p className="text-xs text-slate-400 mt-2 leading-relaxed">{stock.ai_reasoning}</p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="text-base font-extrabold text-emerald-400 font-mono">{stock.score}</span>
-                          <span className="text-[10px] text-slate-500 block">Score</span>
-                        </div>
-                      </div>
+                        )}
 
-                      {stock.stop_loss && (
-                        <div className="flex gap-2 mt-3 text-[10px] font-mono">
-                          <span className="text-rose-400 bg-rose-950/30 border border-rose-900/40 px-2.5 py-1 rounded-xl">
-                            Stop-Loss: {stock.stop_loss}
-                          </span>
-                          <span className="text-emerald-400 bg-emerald-950/30 border border-emerald-900/40 px-2.5 py-1 rounded-xl">
-                            Take-Profit: {stock.take_profit}
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="flex justify-between items-center mt-4 pt-3 border-t border-slate-800/60 text-[11px]">
-                        <span className="text-slate-400 font-mono">
-                          {price > 0 ? `Tranche (50%): ${calculatedShares} stk. (${totalCost.toLocaleString('da-DK')} DKK)` : ''}
-                        </span>
                         <button 
-                          onClick={() => handleCopyTicker(stock.symbol, stock.name)}
-                          className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl border border-slate-700/60 font-medium transition"
+                          onClick={() => deleteStock(stock.id, stock.symbol)}
+                          className="absolute top-4 right-4 text-gray-600 hover:text-rose-400 transition z-10"
                         >
-                          Kopiér Ticker
+                          ✕
                         </button>
+
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pr-10 pt-1">
+                          <div className="space-y-2 w-full">
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <h3 className="text-lg font-bold text-gray-100">{stock.name}</h3>
+                              <span className="text-xs bg-gray-900 text-cyan-300 border border-cyan-900/40 px-2.5 py-0.5 rounded-md font-mono">{stock.symbol}</span>
+                            </div>
+
+                            <p className="text-sm text-gray-400 max-w-xl">{stock.ai_reasoning}</p>
+
+                            {stock.stop_loss && (
+                              <div className="flex flex-wrap items-center gap-3 pt-1 text-xs font-mono">
+                                <span className="text-rose-400 bg-rose-950/40 border border-rose-900/40 px-2.5 py-1 rounded-lg">
+                                  🛑 Stop-Loss: <strong>{stock.stop_loss}</strong>
+                                </span>
+                                <span className="text-emerald-400 bg-emerald-950/40 border border-emerald-900/40 px-2.5 py-1 rounded-lg">
+                                  🎯 Take-Profit: <strong>{stock.take_profit}</strong>
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-6 shrink-0">
+                            <div className="text-right">
+                              <div className="text-xs uppercase tracking-wider text-gray-400">Score</div>
+                              <div className="text-xl font-extrabold text-emerald-400 font-mono">{stock.score}/100</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center pt-3 border-t border-gray-800/50 gap-3">
+                          <span className="text-xs text-emerald-400/90 font-mono">
+                            {price > 0 && isBuy ? `Købs-guidance: ${calculatedShares} stk. (ca. ${totalCost.toLocaleString('da-DK')} DKK)` : ''}
+                          </span>
+
+                          <button 
+                            onClick={() => handleCopyTicker(stock.symbol, stock.name)}
+                            className="inline-flex items-center gap-1.5 text-xs bg-gray-900 hover:bg-gray-800 text-gray-200 px-3.5 py-2 rounded-xl font-medium border border-gray-700/80 cursor-pointer"
+                          >
+                            📋 Kopiér Ticker til Saxo
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })
+                    )
+                  })}
+                </div>
               )}
             </section>
           </div>
         )}
       </div>
 
-      {/* Flydende Neo-bank Tab Bar */}
-      <nav className="fixed bottom-6 left-6 right-6 bg-slate-900/80 backdrop-blur-2xl border border-slate-800/80 py-3 px-6 z-50 rounded-3xl shadow-2xl max-w-sm mx-auto">
-        <div className="flex justify-around items-center">
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#0b1326]/95 backdrop-blur-md border-t border-gray-800 py-3 px-6 z-50 shadow-2xl">
+        <div className="max-w-md mx-auto flex justify-around items-center">
           <button 
             onClick={() => setActiveTab('KORTSIGTET')}
-            className={`flex flex-col items-center gap-1 transition ${activeTab === 'KORTSIGTET' ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`flex flex-col items-center gap-1 transition ${activeTab === 'KORTSIGTET' ? 'text-cyan-400 font-bold' : 'text-gray-400 hover:text-gray-200'}`}
           >
-            <span className="text-base">⚡</span>
-            <span className="text-[10px] tracking-wide">Kortsigtet</span>
+            <span className="text-lg">⚡</span>
+            <span className="text-[11px] tracking-wide">Kortsigtet</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('LANGSIKTET')}
-            className={`flex flex-col items-center gap-1 transition ${activeTab === 'LANGSIKTET' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`flex flex-col items-center gap-1 transition ${activeTab === 'LANGSIKTET' ? 'text-emerald-400 font-bold' : 'text-gray-400 hover:text-gray-200'}`}
           >
-            <span className="text-base">🛡️</span>
-            <span className="text-[10px] tracking-wide">Langsigtet</span>
+            <span className="text-lg">🛡️</span>
+            <span className="text-[11px] tracking-wide">Langsigtet</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('PORTEFØLJE')}
-            className={`flex flex-col items-center gap-1 transition ${activeTab === 'PORTEFØLJE' ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`flex flex-col items-center gap-1 transition ${activeTab === 'PORTEFØLJE' ? 'text-cyan-400 font-bold' : 'text-gray-400 hover:text-gray-200'}`}
           >
-            <span className="text-base">💼</span>
-            <span className="text-[10px] tracking-wide">Portefølje</span>
+            <span className="text-lg">💼</span>
+            <span className="text-[11px] tracking-wide">Min Portefølje</span>
           </button>
         </div>
       </nav>
