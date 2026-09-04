@@ -238,17 +238,17 @@ export default function Home() {
   })
 
   return (
-    <main className="min-h-screen lunar-glow text-slate-100 p-5 md:p-12 pb-36 flex flex-col items-center">
+    <main className="min-h-screen lunar-glow text-slate-100 p-4 md:p-12 pb-36 flex flex-col items-center">
       <div className="w-full max-w-xl space-y-6">
         
-        {/* Header */}
-        <header className="flex justify-between items-center bg-slate-900/60 backdrop-blur-xl border border-slate-800/60 rounded-3xl p-5 shadow-2xl">
+        {/* Header med fastlåst logo-størrelse */}
+        <header className="flex justify-between items-center bg-slate-900/60 backdrop-blur-xl border border-slate-800/60 rounded-3xl p-5 shadow-2xl w-full">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden p-1.5 shrink-0">
-              <img src="/logo.png" alt="AInvest" className="w-full h-full object-contain" />
+            <div style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px' }} className="rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden p-1.5 shrink-0">
+              <img src="/logo.png" alt="AInvest" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
             </div>
             <div>
-              <h1 className="text-lg font-bold tracking-tight text-white">AINVEST</h1>
+              <h1 className="text-lg font-bold tracking-tight text-white leading-tight">AINVEST</h1>
               <p className="text-[11px] tracking-wider text-slate-400 uppercase font-medium">
                 {activeTab === 'PORTEFØLJE' ? 'Portefølje' : activeTab === 'KORTSIGTET' ? 'Sving & Momentum' : 'Langsigtet Anker'}
               </p>
