@@ -12,6 +12,7 @@ interface Stock {
   score: number
   recommendation: string
   ai_reasoning: string | null
+  beginner_explanation?: string | null
   stop_loss?: number | null
   take_profit?: number | null
 }
@@ -238,17 +239,19 @@ export default function Home() {
   })
 
   return (
-    <main className="min-h-screen lunar-glow text-slate-100 p-4 md:p-12 pb-36 flex flex-col items-center">
-      <div className="w-full max-w-xl space-y-6">
+    <main className="min-h-screen lunar-glow text-slate-100 p-5 md:p-12 pb-32">
+      <div className="max-w-xl mx-auto">
         
-        {/* Header med fastlåst logo-størrelse */}
-        <header className="flex justify-between items-center bg-slate-900/60 backdrop-blur-xl border border-slate-800/60 rounded-3xl p-5 shadow-2xl w-full">
+        {/* Minimalistisk Neo-bank Header */}
+        <header className="flex justify-between items-center mb-8 pt-2">
           <div className="flex items-center gap-3.5">
-            <div style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px' }} className="rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden p-1.5 shrink-0">
-              <img src="/logo.png" alt="AInvest" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+            <div className="w-12 h-12 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-center shadow-inner overflow-hidden p-1">
+              <img src="/logo.png" alt="AInvest" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h1 className="text-lg font-bold tracking-tight text-white leading-tight">AINVEST</h1>
+              <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                AINVEST
+              </h1>
               <p className="text-[11px] tracking-wider text-slate-400 uppercase font-medium">
                 {activeTab === 'PORTEFØLJE' ? 'Portefølje' : activeTab === 'KORTSIGTET' ? 'Sving & Momentum' : 'Langsigtet Anker'}
               </p>
@@ -260,7 +263,7 @@ export default function Home() {
               <button
                 onClick={discoverNewStock}
                 disabled={discovering}
-                className="bg-slate-950 hover:bg-slate-800 text-cyan-400 border border-slate-800 text-xs font-semibold px-3 py-2.5 rounded-2xl transition disabled:opacity-50"
+                className="bg-slate-900/90 hover:bg-slate-800 text-cyan-400 border border-slate-800 text-xs font-semibold px-3.5 py-2.5 rounded-2xl transition shadow-sm disabled:opacity-50"
               >
                 {discovering ? 'Scanner...' : '🔍 Top 3'}
               </button>
@@ -268,7 +271,7 @@ export default function Home() {
             <button
               onClick={runAiAnalysis}
               disabled={analyzing}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-2xl transition shadow-md disabled:opacity-50"
+              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-2xl transition shadow-md shadow-emerald-500/10 disabled:opacity-50"
             >
               {analyzing ? 'Opdaterer...' : '✨ Opdater'}
             </button>
@@ -276,15 +279,17 @@ export default function Home() {
         </header>
 
         {/* MARKEDETS PULS KORT */}
-        <section className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/60 rounded-3xl p-6 shadow-2xl">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] uppercase font-mono tracking-widest text-emerald-400 bg-emerald-950/50 border border-emerald-900/40 px-3 py-1 rounded-full">
-              Markedsoverblik • {marketPulse.status}
-            </span>
+        <section className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 mb-6 shadow-2xl relative overflow-hidden">
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <div>
+              <span className="text-[10px] uppercase font-mono tracking-widest text-emerald-400 bg-emerald-950/50 border border-emerald-900/40 px-2.5 py-1 rounded-full">
+                Markedsoverblik • {marketPulse.status}
+              </span>
+              <h2 className="text-base font-semibold text-white mt-2">
+                {marketPulse.headline}
+              </h2>
+            </div>
           </div>
-          <h2 className="text-sm font-semibold text-white mb-2">
-            {marketPulse.headline}
-          </h2>
           <p className="text-xs text-slate-300 leading-relaxed mb-4">
             {marketPulse.advice}
           </p>
@@ -296,7 +301,7 @@ export default function Home() {
             {!pushEnabled && (
               <button
                 onClick={requestPushPermission}
-                className="text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-300 px-3.5 py-1.5 rounded-xl border border-slate-700/60 transition"
+                className="text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-300 px-3 py-1.5 rounded-xl border border-slate-700/60 transition"
               >
                 Slå til
               </button>
@@ -307,7 +312,7 @@ export default function Home() {
         {/* INDHOLD FOR HVER TAB */}
         {activeTab === 'PORTEFØLJE' ? (
           <div className="space-y-6">
-            <section className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/60 rounded-3xl p-6 shadow-2xl">
+            <section className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 shadow-2xl">
               <h2 className="text-sm font-bold text-cyan-300 uppercase tracking-wider mb-1">Saxo Lyn-Import</h2>
               <p className="text-xs text-slate-400 mb-4">Indsæt ordretekst direkte fra Saxo:</p>
               <form onSubmit={handleSaxoImport} className="flex flex-col gap-3">
@@ -316,73 +321,81 @@ export default function Home() {
                   placeholder="F.eks. Købt 10 stk. Novo Nordisk til 450" 
                   value={saxoText}
                   onChange={(e) => setSaxoText(e.target.value)}
-                  className="bg-slate-950/80 border border-slate-800 rounded-2xl px-4 py-3 text-white text-xs focus:outline-none focus:border-cyan-500 transition"
+                  className="bg-slate-950/80 border border-slate-800 rounded-2xl px-4 py-3 text-white text-xs focus:outline-none focus:border-cyan-500 transition shadow-inner"
                   required
                 />
                 <button 
                   type="submit"
                   disabled={importing}
-                  className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 rounded-2xl text-xs transition disabled:opacity-50"
+                  className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 rounded-2xl text-xs transition shadow-md shadow-cyan-500/10 disabled:opacity-50"
                 >
                   {importing ? 'Tyder ordre...' : '⚡ Tilføj til Portefølje'}
                 </button>
               </form>
             </section>
 
-            <section className="space-y-3">
-              <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider">Aktive Positioner</h2>
+            <section>
+              <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3">Aktive Positioner</h2>
               {portfolio.length === 0 ? (
-                <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-8 text-center text-slate-400 text-xs">
+                <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-8 text-center text-slate-400 text-xs">
                   Ingen aktive handler endnu. Brug lyn-importen ovenfor.
                 </div>
               ) : (
-                portfolio.map((item) => {
-                  const curPrice = item.current_price || item.purchase_price
-                  const investedValue = item.shares * item.purchase_price
-                  const currentValue = item.shares * curPrice
-                  const gainLoss = currentValue - investedValue
-                  const gainLossPct = investedValue > 0 ? (gainLoss / investedValue) * 100 : 0
-                  const isProfit = gainLoss >= 0
+                <div className="space-y-3">
+                  {portfolio.map((item) => {
+                    const curPrice = item.current_price || item.purchase_price
+                    const investedValue = item.shares * item.purchase_price
+                    const currentValue = item.shares * curPrice
+                    const gainLoss = currentValue - investedValue
+                    const gainLossPct = investedValue > 0 ? (gainLoss / investedValue) * 100 : 0
+                    const isProfit = gainLoss >= 0
 
-                  return (
-                    <div key={item.id} className="bg-slate-900/60 border border-slate-800/60 rounded-3xl p-5 shadow-xl relative">
-                      <button 
-                        onClick={() => deletePortfolioItem(item.id, item.symbol)}
-                        className="absolute top-5 right-5 text-slate-500 hover:text-rose-400 text-xs"
-                      >
-                        ✕
-                      </button>
-                      <div className="flex justify-between items-start mb-2 pr-6">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-bold text-white">{item.name}</h3>
-                            <span className="text-[10px] bg-slate-950 text-cyan-300 px-2.5 py-0.5 rounded-lg font-mono border border-slate-800">{item.symbol}</span>
+                    return (
+                      <div key={item.id} className="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-5 shadow-lg relative">
+                        <button 
+                          onClick={() => deletePortfolioItem(item.id, item.symbol)}
+                          className="absolute top-5 right-5 text-slate-500 hover:text-rose-400 text-xs"
+                        >
+                          ✕
+                        </button>
+                        <div className="flex justify-between items-start mb-2 pr-6">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-sm font-bold text-white">{item.name}</h3>
+                              <span className="text-[10px] bg-slate-950 text-cyan-300 px-2 py-0.5 rounded-lg font-mono border border-slate-800">{item.symbol}</span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 mt-1">
+                              {item.shares} stk. à {item.purchase_price} DKK (Aktuel: {curPrice})
+                            </p>
                           </div>
-                          <p className="text-xs text-slate-400 mt-1">
-                            {item.shares} stk. à {item.purchase_price} DKK (Aktuel: {curPrice})
-                          </p>
+                          <div className="text-right">
+                            <span className={`text-xs font-bold font-mono ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {isProfit ? '+' : ''}{gainLoss.toFixed(1)} DKK ({isProfit ? '+' : ''}{gainLossPct.toFixed(1)}%)
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <span className={`text-xs font-bold font-mono ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            {isProfit ? '+' : ''}{gainLoss.toFixed(1)} DKK ({isProfit ? '+' : ''}{gainLossPct.toFixed(1)}%)
-                          </span>
-                        </div>
+
+                        {item.stop_loss && curPrice <= item.stop_loss && (
+                          <div className="mt-3 p-3 bg-rose-950/40 border border-rose-900/60 rounded-2xl text-[11px] text-rose-200 font-semibold">
+                            🚨 Stop-Loss ({item.stop_loss}) er ramt! Overvej at eksekvere.
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )
-                })
+                    )
+                  })}
+                </div>
               )}
             </section>
           </div>
         ) : (
           <div className="space-y-6">
             {/* Budget & Beregner */}
-            <section className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/60 rounded-3xl p-5 shadow-xl flex items-center justify-between gap-4">
+            <section className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-5 shadow-xl flex items-center justify-between gap-4">
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Tranche Budget</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Tranche Budget</h3>
                 <p className="text-[11px] text-slate-400">Spreder risiko automatisk</p>
               </div>
-              <div className="flex items-center gap-1 bg-slate-950/80 border border-slate-800 rounded-2xl px-3.5 py-2 shrink-0">
+              <div className="flex items-center gap-1 bg-slate-950/80 border border-slate-800 rounded-2xl px-3 py-1.5">
                 <input 
                   type="number" 
                   value={budget} 
@@ -394,7 +407,7 @@ export default function Home() {
             </section>
 
             {/* Tilføj manuelt */}
-            <section className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/60 rounded-3xl p-5 shadow-xl">
+            <section className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-5 shadow-xl">
               <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">Tilføj overvågning</h3>
               <form onSubmit={handleAddStock} className="flex gap-2">
                 <input 
@@ -427,8 +440,8 @@ export default function Home() {
               {loading ? (
                 <div className="text-center py-12 text-slate-500 text-xs font-mono">Henter data...</div>
               ) : filteredStocks.length === 0 ? (
-                <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-8 text-center text-slate-400 text-xs">
-                  Ingen aktier fundet endnu. Klik på "Top 3".
+                <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-8 text-center text-slate-400 text-xs">
+                  Ingen aktier fundet i denne kategori endnu. Klik på "Top 3".
                 </div>
               ) : (
                 filteredStocks.map((stock, index) => {
@@ -442,7 +455,7 @@ export default function Home() {
                     <div 
                       key={stock.id} 
                       className={`bg-slate-900/60 backdrop-blur-xl border rounded-3xl p-5 shadow-xl relative transition ${
-                        isTopPick ? 'border-emerald-500/50 shadow-emerald-500/5' : 'border-slate-800/60'
+                        isTopPick ? 'border-emerald-500/60 shadow-emerald-500/5' : 'border-slate-800/80'
                       }`}
                     >
                       {isTopPick && (
@@ -464,11 +477,11 @@ export default function Home() {
                             <h3 className="text-sm font-bold text-white">{stock.name}</h3>
                             <span className="text-[10px] bg-slate-950 text-cyan-300 px-2 py-0.5 rounded-lg font-mono border border-slate-800">{stock.symbol}</span>
                           </div>
-                          <p className="text-xs text-slate-300 mt-2 leading-relaxed">{stock.ai_reasoning}</p>
+                          <p className="text-xs text-slate-400 mt-2 leading-relaxed">{stock.ai_reasoning}</p>
                         </div>
                         <div className="text-right shrink-0">
                           <span className="text-base font-extrabold text-emerald-400 font-mono">{stock.score}</span>
-                          <span className="text-[9px] text-slate-500 block">Score</span>
+                          <span className="text-[10px] text-slate-500 block">Score</span>
                         </div>
                       </div>
 
@@ -503,8 +516,8 @@ export default function Home() {
         )}
       </div>
 
-      {/* Flydende Neo-bank Tab Bar i bunden */}
-      <nav className="fixed bottom-6 left-6 right-6 bg-slate-900/90 backdrop-blur-2xl border border-slate-800/60 py-3 px-6 z-50 rounded-3xl shadow-2xl max-w-sm mx-auto">
+      {/* Flydende Neo-bank Tab Bar */}
+      <nav className="fixed bottom-6 left-6 right-6 bg-slate-900/80 backdrop-blur-2xl border border-slate-800/80 py-3 px-6 z-50 rounded-3xl shadow-2xl max-w-sm mx-auto">
         <div className="flex justify-around items-center">
           <button 
             onClick={() => setActiveTab('KORTSIGTET')}

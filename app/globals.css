@@ -3,24 +3,24 @@
 @tailwind utilities;
 
 :root {
-  background-color: #090d16;
-  color: #ededed;
+  --background: #090d16;
+  --foreground: #ededed;
 }
 
 body {
-  background-color: #090d16;
-  color: #ededed;
+  background-color: var(--background);
+  color: var(--foreground);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
-  margin: 0;
-  padding: 0;
 }
 
+/* Bløde glødende effekter à la neo-bank */
 .lunar-glow {
   background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.08), transparent 50%),
               radial-gradient(circle at bottom left, rgba(6, 182, 212, 0.06), transparent 50%);
 }
 
+/* Skjul scrollbar for et mere rent app-look */
 ::-webkit-scrollbar {
   display: none;
 }
